@@ -15,7 +15,6 @@ import {
   CheckCircle2,
   AlertCircle,
   ChevronRight,
-  ArrowUpRight,
   Activity,
   Clock,
   Mail,
@@ -561,79 +560,42 @@ function SidebarNavButton({ icon, label, active, badge, onClick }) {
 function DashboardView({ stats, activities, courses, onNavigate }) {
   return (
     <div className="space-y-6">
-      {/* Top Banner & Quick Greeting */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Welcome Card */}
-        <div className="lg:col-span-2 bg-white rounded-3xl p-6 lg:p-7 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.03)] relative overflow-hidden flex flex-col justify-between">
-          <div className="relative z-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#fdeedc] text-[#8a4816] text-xs font-semibold mb-3">
-              <Sparkles size={13} /> BackTrack Portal Overview
-            </div>
-            <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-              Good Morning, Controller Ariel
-            </h3>
-            <p className="text-xs text-slate-500 mt-1 max-w-lg leading-relaxed">
-              Semester evaluations and backlog clearance pipelines are operating normally. 
-              Review the recent student submissions and faculty assignments below.
-            </p>
+      {/* Top Welcome Greeting Banner */}
+      <div className="w-full bg-white rounded-3xl p-6 lg:p-7 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.03)] relative overflow-hidden flex flex-col justify-between">
+        <div className="relative z-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#fdeedc] text-[#8a4816] text-xs font-semibold mb-3">
+            <Sparkles size={13} /> BackTrack Portal Overview
           </div>
-
-          <div className="mt-6 pt-5 border-t border-slate-100 flex flex-wrap items-center gap-4 relative z-10">
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-700 bg-[#f6f7fa] px-3.5 py-2 rounded-xl">
-              <Clock size={15} className="text-slate-400" />
-              10:29 AM • Wednesday, Oct 7
-            </div>
-            <button
-              onClick={() => onNavigate('Users Management')}
-              className="text-xs font-bold text-[#13141b] bg-[#fdeedc] hover:bg-[#fad8ba] px-4 py-2 rounded-xl transition flex items-center gap-1.5"
-            >
-              Manage Users <ChevronRight size={14} />
-            </button>
-            <button
-              onClick={() => onNavigate('Courses & Subjects')}
-              className="text-xs font-bold text-[#13141b] bg-[#f4e8fd] hover:bg-[#eacffc] px-4 py-2 rounded-xl transition flex items-center gap-1.5"
-            >
-              View Subjects <ChevronRight size={14} />
-            </button>
-          </div>
-
-          {/* Decorative soft pastel blob background */}
-          <div className="absolute right-[-40px] top-[-40px] w-64 h-64 rounded-full bg-gradient-to-br from-[#fdeedc]/60 to-[#f4e8fd]/60 blur-2xl pointer-events-none" />
+          <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+            Good Morning, Controller Ariel
+          </h3>
+          <p className="text-xs text-slate-500 mt-1 max-w-xl leading-relaxed">
+            Semester evaluations and backlog clearance pipelines are operating normally. 
+            Review the recent student submissions and faculty assignments below.
+          </p>
         </div>
 
-        {/* High-Contrast Obsidian Card (Inspired by reference image right-side widget) */}
-        <div className="bg-[#14151b] text-white rounded-3xl p-6 shadow-xl flex flex-col justify-between relative overflow-hidden">
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Exam Resolution Rate</span>
-              <span className="text-[10px] bg-white/10 text-[#f5caa0] px-2.5 py-0.5 rounded-full font-bold">This Term</span>
-            </div>
-            <div className="mt-4 flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold tracking-tight text-white">{stats.clearedRate}%</span>
-              <span className="text-xs font-bold text-emerald-400 flex items-center">
-                <ArrowUpRight size={14} /> +4.2%
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-400 mt-1">
-              58 backlogs pending re-exam out of 660 candidate registrations.
-            </p>
+        <div className="mt-6 pt-5 border-t border-slate-100 flex flex-wrap items-center gap-4 relative z-10">
+          <div className="flex items-center gap-2 text-xs font-bold text-slate-700 bg-[#f6f7fa] px-3.5 py-2 rounded-xl">
+            <Clock size={15} className="text-slate-400" />
+            10:29 AM • Wednesday, Oct 7
           </div>
-
-          {/* Mini progress visual styled with the pastel tokens */}
-          <div className="mt-6 space-y-2">
-            <div className="flex justify-between text-[11px] font-medium text-slate-400">
-              <span>Resolution Progress</span>
-              <span className="text-[#f5caa0] font-bold">602 Cleared</span>
-            </div>
-            <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden flex">
-              <div className="h-full bg-[#f5caa0] rounded-full" style={{ width: `${stats.clearedRate}%` }}></div>
-            </div>
-            <div className="flex items-center justify-between pt-2 text-[10px] text-slate-400">
-              <span>Avg Clearance Time: <strong className="text-white">2.4 days</strong></span>
-              <span>Fastest: <strong className="text-white">BCA Dept</strong></span>
-            </div>
-          </div>
+          <button
+            onClick={() => onNavigate('Users Management')}
+            className="text-xs font-bold text-[#13141b] bg-[#fdeedc] hover:bg-[#fad8ba] px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+          >
+            Manage Users <ChevronRight size={14} />
+          </button>
+          <button
+            onClick={() => onNavigate('Courses & Subjects')}
+            className="text-xs font-bold text-[#13141b] bg-[#f4e8fd] hover:bg-[#eacffc] px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+          >
+            View Subjects <ChevronRight size={14} />
+          </button>
         </div>
+
+        {/* Decorative soft pastel blob background */}
+        <div className="absolute right-[-40px] top-[-40px] w-64 h-64 rounded-full bg-gradient-to-br from-[#fdeedc]/60 to-[#f4e8fd]/60 blur-2xl pointer-events-none" />
       </div>
 
       {/* 4 Pastel Stat Cards (Directly matching Peach, Lavender, Mint, Sky Palette) */}
