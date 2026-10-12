@@ -71,9 +71,13 @@ export default function Register() {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-slate-700">Semester</label>
+                <label className="block text-sm font-medium text-slate-700">Semester Cycle</label>
                 <select className="mt-1 block w-full pl-3 pr-10 py-3 border border-slate-200 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50">
-                  {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={s}>Semester {s}</option>)}
+                  {[1,2,3,4,5,6,7,8].map(s => (
+                    <option key={s} value={s}>
+                      Semester {s} ({s % 2 !== 0 ? 'Odd Sem' : 'Even Sem'})
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

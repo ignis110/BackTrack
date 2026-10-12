@@ -20,7 +20,43 @@ export default function Login() {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    // Simulate login for now - later will connect to FastAPI
+    const cleanInput = username.trim() || `${role}1`;
+
+    let cleanEmail = '';
+    let displayName = '';
+    let displayId = '';
+
+    if (cleanInput.includes('@')) {
+      // User entered an actual email address
+      cleanEmail = cleanInput.toLowerCase();
+      const prefix = cleanInput.split('@')[0];
+      displayName = prefix.charAt(0).toUpperCase() + prefix.slice(1);
+      displayId = prefix.toUpperCase();
+    } else {
+      // User entered an ID or Name
+      const isUsnOrId = /^[0-9A-Z]{5,15}$/i.test(cleanInput) || cleanInput.toUpperCase().startsWith('1BT') || cleanInput.toUpperCase().startsWith('FAC');
+      if (isUsnOrId) {
+        displayName = cleanInput.toUpperCase();
+        displayId = cleanInput.toUpperCase();
+      } else {
+        displayName = cleanInput.charAt(0).toUpperCase() + cleanInput.slice(1);
+        displayId = role === 'student' ? `1BT23-${cleanInput.toUpperCase().slice(0, 6)}` : role === 'faculty' ? 'FAC-1001' : 'ADM-01';
+      }
+      cleanEmail = `${cleanInput.toLowerCase().replace(/\s+/g, '.')}@${role === 'student' ? 'student.' : ''}univ.edu`;
+    }
+
+    const userSession = {
+      username: cleanInput,
+      name: displayName,
+      id: displayId,
+      usn: displayId,
+      role: role,
+      email: cleanEmail,
+      loginTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    localStorage.setItem('currentUser', JSON.stringify(userSession));
+
     if (role === 'student') navigate('/student');
     else if (role === 'faculty') navigate('/faculty');
     else if (role === 'admin') navigate('/admin');
