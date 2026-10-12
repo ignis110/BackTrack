@@ -468,13 +468,7 @@ export default function FacultyDashboard() {
               badge={students.length}
               onClick={() => { setActiveTab('Students'); setIsMobileMenuOpen(false); }}
             />
-            <SidebarBtn
-              icon={<BookOpen size={19} />}
-              label="Subjects / Classes"
-              active={activeTab === 'Subjects / Classes'}
-              badge={facultyProfile.assignedSubjects.length}
-              onClick={() => { setActiveTab('Subjects / Classes'); setIsMobileMenuOpen(false); }}
-            />
+
             <SidebarBtn
               icon={<FileCheck size={19} />}
               label="Approvals"
@@ -624,14 +618,7 @@ export default function FacultyDashboard() {
             />
           )}
 
-          {activeTab === 'Subjects / Classes' && (
-            <FacultySubjectsClassesTab
-              faculty={facultyProfile}
-              setFaculty={setFacultyProfile}
-              students={students}
-              triggerToast={triggerToast}
-            />
-          )}
+
 
           {activeTab === 'Approvals' && (
             <FacultyApprovalsTab
@@ -738,98 +725,67 @@ function FacultyDashboardTab({
 
   return (
     <div className="space-y-6">
-      {/* Welcome Banner & Obsidian Class Metric */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white rounded-3xl p-6 lg:p-7 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.03)] relative overflow-hidden flex flex-col justify-between">
-          <div className="relative z-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#f4e8fd] text-[#6b21a8] text-xs font-semibold mb-3">
-              <GraduationCap size={14} /> Academic Faculty Desk
-            </div>
-            <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-              Good Morning, {faculty.name}
-            </h3>
-            <p className="text-xs text-slate-500 mt-1 max-w-lg leading-relaxed">
-              You are assigned to <strong>2 core subjects</strong> across <strong>{faculty.assignedSections.join(' & ')}</strong>. 
-              There are {pendingUpdates.length} student progress reports requiring faculty guidance or backlog clearance.
-            </p>
+      {/* Welcome Academic Banner */}
+      <div className="w-full bg-white rounded-3xl p-6 lg:p-7 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.03)] relative overflow-hidden flex flex-col justify-between">
+        <div className="relative z-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#f4e8fd] text-[#6b21a8] text-xs font-semibold mb-3">
+            <GraduationCap size={14} /> Academic Faculty Desk
           </div>
-
-          <div className="mt-6 pt-5 border-t border-slate-100 flex flex-wrap items-center gap-3 relative z-10">
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-700 bg-[#f6f7fa] px-3.5 py-2 rounded-xl">
-              <Calendar size={15} className="text-slate-400" />
-              Office Hours: 02:00 PM – 04:30 PM
-            </div>
-            <button
-              onClick={() => onNavigate('Student Updates')}
-              className="text-xs font-bold text-[#13141b] bg-[#fdeedc] hover:bg-[#fad8ba] px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer"
-            >
-              Student Updates ({pendingUpdates.length}) <ChevronRight size={14} />
-            </button>
-            <button
-              onClick={() => onNavigate('Backlog Management')}
-              className="text-xs font-bold text-[#13141b] bg-[#e0f2fe] hover:bg-[#bae6fd] px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer"
-            >
-              Backlog Management <ChevronRight size={14} />
-            </button>
-            <button
-              onClick={() => onNavigate('Students')}
-              className="text-xs font-bold text-[#13141b] bg-[#e7f6ee] hover:bg-[#d8f0e2] px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer"
-            >
-              View Students <ChevronRight size={14} />
-            </button>
-          </div>
-
-          <div className="absolute right-[-40px] top-[-40px] w-64 h-64 rounded-full bg-gradient-to-br from-[#f4e8fd]/60 to-[#fdeedc]/60 blur-2xl pointer-events-none" />
+          <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+            Welcome, {faculty.name}
+          </h3>
+          <p className="text-xs text-slate-500 mt-1 max-w-2xl leading-relaxed">
+            Faculty supervision portal for monitoring student backlog clearance, reviewing progress reports, conducting guidance consultations, and certifying backlog resolutions.
+          </p>
         </div>
 
-        {/* Dark Obsidian Success Card (Odd & Even Sems badge removed) */}
-        <div className="bg-[#14151b] text-white rounded-3xl p-6 shadow-xl flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Mid-Semester Evaluation</span>
-            </div>
-            <div className="mt-4 flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold tracking-tight text-white">92.4%</span>
-              <span className="text-xs font-bold text-emerald-400">Papers Graded</span>
-            </div>
-            <p className="text-[11px] text-slate-400 mt-1">
-              DBMS: 44/50 avg • Python Lab: 46/50 avg. Endsem hall tickets cleared.
-            </p>
+        <div className="mt-6 pt-5 border-t border-slate-100 flex flex-wrap items-center gap-3 relative z-10">
+          <div className="flex items-center gap-2 text-xs font-bold text-slate-700 bg-[#f6f7fa] px-3.5 py-2 rounded-xl">
+            <Calendar size={15} className="text-slate-400" />
+            Office Hours: 02:00 PM – 04:30 PM
           </div>
-
-          <div className="mt-6 space-y-2">
-            <div className="flex justify-between text-[11px] font-medium text-slate-400">
-              <span>Syllabus Covered</span>
-              <span className="text-[#f5caa0] font-bold">85% Total</span>
-            </div>
-            <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden flex">
-              <div className="h-full bg-[#f5caa0] rounded-full" style={{ width: '85%' }}></div>
-            </div>
-            <div className="flex items-center justify-between pt-2 text-[10px] text-slate-400">
-              <span>Next End-Sem Exam: <strong className="text-white">Nov 24</strong></span>
-              <span>Students in Cohort: <strong className="text-white">133</strong></span>
-            </div>
-          </div>
+          <button
+            onClick={() => onNavigate('Backlog Management')}
+            className="text-xs font-bold text-[#13141b] bg-[#e0f2fe] hover:bg-[#bae6fd] px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+          >
+            Backlog Management <ChevronRight size={14} />
+          </button>
+          <button
+            onClick={() => onNavigate('Student Updates')}
+            className="text-xs font-bold text-[#13141b] bg-[#fdeedc] hover:bg-[#fad8ba] px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+          >
+            Student Updates ({pendingUpdates.length}) <ChevronRight size={14} />
+          </button>
+          <button
+            onClick={() => onNavigate('Students')}
+            className="text-xs font-bold text-[#13141b] bg-[#e7f6ee] hover:bg-[#d8f0e2] px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+          >
+            View Students <ChevronRight size={14} />
+          </button>
         </div>
+
+        <div className="absolute right-[-40px] top-[-40px] w-64 h-64 rounded-full bg-gradient-to-br from-[#f4e8fd]/60 to-[#fdeedc]/60 blur-2xl pointer-events-none" />
       </div>
 
       {/* 4 Pastel Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {/* Assigned Classes - Pastel Peach */}
+        {/* Backlogs Resolved / Cleared - Pastel Emerald */}
         <div
-          onClick={() => onNavigate('Subjects / Classes')}
-          className="bg-[#fdeedc] border border-[#fcd7b5] rounded-3xl p-5 shadow-[0_6px_20px_rgba(250,238,220,0.4)] cursor-pointer hover:scale-[1.02] transition-transform"
+          onClick={() => onNavigate('Backlog Management')}
+          className="bg-[#e7f6ee] border border-[#bce8ce] rounded-3xl p-5 shadow-[0_6px_20px_rgba(231,246,238,0.4)] cursor-pointer hover:scale-[1.02] transition-transform"
         >
           <div className="flex items-center justify-between">
-            <div className="w-11 h-11 rounded-2xl bg-[#f7d6b8] text-[#8a4816] flex items-center justify-center font-bold shadow-xs">
-              <BookOpen size={22} />
+            <div className="w-11 h-11 rounded-2xl bg-[#cceed7] text-[#166534] flex items-center justify-center font-bold shadow-xs">
+              <Award size={22} />
             </div>
-            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#fae3cb] text-[#8a4816]">Active</span>
+            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#dcf1e3] text-[#166534]">Resolved</span>
           </div>
           <div className="mt-4">
-            <span className="text-xs font-bold text-[#8a4816]/80 uppercase tracking-wide">Assigned Classes</span>
-            <div className="text-2xl font-black text-[#2c1d11] tracking-tight mt-0.5">{faculty.assignedSections.length} Sections</div>
-            <p className="text-[11px] text-[#8a4816] mt-1 font-medium">{faculty.assignedSections.join(', ')}</p>
+            <span className="text-xs font-bold text-[#166534]/80 uppercase tracking-wide">Backlogs Resolved</span>
+            <div className="text-2xl font-black text-[#133722] tracking-tight mt-0.5">
+              {backlogRecords.filter((b) => b.clearanceStatus === 'Cleared').length} Cleared
+            </div>
+            <p className="text-[11px] text-[#166534] mt-1 font-medium">Official certificates issued</p>
           </div>
         </div>
 
@@ -845,7 +801,7 @@ function FacultyDashboardTab({
             <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#eedafc] text-[#6b21a8]">Backlogs</span>
           </div>
           <div className="mt-4">
-            <span className="text-xs font-bold text-[#6b21a8]/80 uppercase tracking-wide">Backlog Management</span>
+            <span className="text-xs font-bold text-[#6b21a8]/80 uppercase tracking-wide">Active Backlogs</span>
             <div className="text-2xl font-black text-[#331342] tracking-tight mt-0.5">
               {backlogRecords.filter((b) => b.clearanceStatus !== 'Cleared').length} Active
             </div>
@@ -853,27 +809,27 @@ function FacultyDashboardTab({
           </div>
         </div>
 
-        {/* Student Updates - Pastel Mint */}
+        {/* Student Updates - Pastel Peach */}
         <div
           onClick={() => onNavigate('Student Updates')}
-          className="bg-[#e7f6ee] border border-[#bce8ce] rounded-3xl p-5 shadow-[0_6px_20px_rgba(231,246,238,0.4)] cursor-pointer hover:scale-[1.02] transition-transform"
+          className="bg-[#fdeedc] border border-[#fcd7b5] rounded-3xl p-5 shadow-[0_6px_20px_rgba(250,238,220,0.4)] cursor-pointer hover:scale-[1.02] transition-transform"
         >
           <div className="flex items-center justify-between">
-            <div className="w-11 h-11 rounded-2xl bg-[#cceed7] text-[#166534] flex items-center justify-center font-bold shadow-xs">
+            <div className="w-11 h-11 rounded-2xl bg-[#f7d6b8] text-[#8a4816] flex items-center justify-center font-bold shadow-xs">
               <ClipboardList size={22} />
             </div>
-            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#dcf1e3] text-[#166534]">
+            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#fae3cb] text-[#8a4816]">
               {pendingUpdates.length} Pending
             </span>
           </div>
           <div className="mt-4">
-            <span className="text-xs font-bold text-[#166534]/80 uppercase tracking-wide">Student Updates</span>
-            <div className="text-2xl font-black text-[#133722] tracking-tight mt-0.5">{backlogRecords.length} Reports</div>
-            <p className="text-[11px] text-[#166534] mt-1 font-medium">Student backlog progress submissions</p>
+            <span className="text-xs font-bold text-[#8a4816]/80 uppercase tracking-wide">Student Reports</span>
+            <div className="text-2xl font-black text-[#2c1d11] tracking-tight mt-0.5">{backlogRecords.length} Updates</div>
+            <p className="text-[11px] text-[#8a4816] mt-1 font-medium">Consultation & progress status</p>
           </div>
         </div>
 
-        {/* Assigned Students - Pastel Sky Blue */}
+        {/* Supervised Students - Pastel Sky Blue */}
         <div
           onClick={() => onNavigate('Students')}
           className="bg-[#e9f2fc] border border-[#bedafb] rounded-3xl p-5 shadow-[0_6px_20px_rgba(233,242,252,0.4)] cursor-pointer hover:scale-[1.02] transition-transform"
@@ -885,189 +841,151 @@ function FacultyDashboardTab({
             <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#dce9fb] text-[#1e40af]">Cohort</span>
           </div>
           <div className="mt-4">
-            <span className="text-xs font-bold text-[#1e40af]/80 uppercase tracking-wide">Total Students</span>
-            <div className="text-2xl font-black text-[#102d54] tracking-tight mt-0.5">{students.length * 26} Enrolled</div>
-            <p className="text-[11px] text-[#1e40af] mt-1 font-medium">Sec A & Sec B Combined</p>
+            <span className="text-xs font-bold text-[#1e40af]/80 uppercase tracking-wide">Supervised Students</span>
+            <div className="text-2xl font-black text-[#102d54] tracking-tight mt-0.5">{students.length} Candidates</div>
+            <p className="text-[11px] text-[#1e40af] mt-1 font-medium">Student cohort oversight</p>
           </div>
         </div>
       </div>
 
-      {/* Pending Student Updates Quick Action Feed & Lectures */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Pending Student Requests Requiring Faculty Attention */}
-        <div className="lg:col-span-2 bg-white rounded-3xl p-6 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <h4 className="text-base font-extrabold text-slate-900 tracking-tight">Pending Student Requests</h4>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#fdeedc] text-[#8a4816]">
-                  {pendingUpdates.length} Requiring Attention
-                </span>
-              </div>
-              <p className="text-xs text-slate-500">Student progress reports & backlog updates requiring faculty review</p>
+      {/* Visual Resolution Funnel */}
+      <ResolutionFunnelSummary
+        records={backlogRecords}
+        onFilterSelect={() => onNavigate('Backlog Management')}
+      />
+
+      {/* Pending Student Updates Quick Action Feed */}
+      <div className="bg-white rounded-3xl p-6 lg:p-7 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+          <div>
+            <div className="flex items-center gap-2">
+              <h4 className="text-base font-extrabold text-slate-900 tracking-tight">Recent Student Backlog Reports</h4>
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#fdeedc] text-[#8a4816]">
+                {pendingUpdates.length} Requiring Attention
+              </span>
             </div>
-            <button
-              onClick={() => onNavigate('Student Updates')}
-              className="text-xs font-bold text-[#6b21a8] hover:underline flex items-center gap-1 cursor-pointer"
-            >
-              View all updates ({backlogRecords.length}) <ChevronRight size={14} />
-            </button>
+            <p className="text-xs text-slate-500 mt-0.5">Student progress reports & backlog updates requiring faculty review</p>
           </div>
-
-          <div className="space-y-3">
-            {backlogRecords.length === 0 ? (
-              <div className="p-8 text-center text-xs text-slate-400 bg-slate-50 rounded-2xl">
-                No student updates right now. All caught up!
-              </div>
-            ) : (
-              backlogRecords.slice(0, 3).map((item) => (
-                <div
-                  key={item.id}
-                  className="p-4 rounded-2xl border border-slate-100 bg-[#fbfbfd] hover:bg-slate-50/70 transition-all flex flex-col sm:flex-row sm:items-start justify-between gap-3"
-                >
-                  <div className="flex items-start gap-3.5">
-                    <div className="w-10 h-10 rounded-2xl bg-[#13141b] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs mt-0.5">
-                      <User size={18} className="text-slate-300" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-extrabold text-sm text-slate-900">{item.studentName}</span>
-                        <span className="text-[11px] font-mono text-slate-400">{item.usn}</span>
-                      </div>
-                      <p className="text-xs text-slate-700 font-semibold mt-0.5">
-                        Subject: <span className="text-slate-900">{item.subjectName}</span>
-                      </p>
-
-                      <div className="flex items-center gap-2 mt-2 flex-wrap">
-                        {!item.metTeacher ? (
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#fef3c7] text-[#b45309] border border-[#fde68a]">
-                            Teacher meeting pending
-                          </span>
-                        ) : (
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#e7f6ee] text-[#166534] border border-[#bce8ce]">
-                            Teacher meeting: Completed
-                          </span>
-                        )}
-
-                        {item.resultStatus === 'Awaiting result' ? (
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#e0f2fe] text-[#0369a1] border border-[#bae6fd]">
-                            Awaiting result
-                          </span>
-                        ) : item.resultStatus === 'Cleared' ? (
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#e7f6ee] text-[#166534] border border-[#bce8ce]">
-                            Cleared
-                          </span>
-                        ) : (
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                            Not cleared
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="mt-2 space-y-1 text-xs text-slate-600">
-                        <div>
-                          <span className="text-slate-400 font-medium">Assignments: </span>
-                          <span className="font-semibold text-slate-800">{item.assignmentsCompleted}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 font-medium">Repeat exam: </span>
-                          <span className="font-semibold text-slate-800">{item.repeatExamStatus}</span>
-                        </div>
-                        <div className="text-[11px] text-slate-600 bg-white p-2.5 rounded-xl border border-slate-100 mt-1.5 italic font-medium">
-                          &quot;{item.studentRemarks}&quot;
-                        </div>
-                        <div className="text-[10px] text-slate-400 mt-1 flex items-center gap-1">
-                          <Clock size={11} /> Last updated: {item.lastUpdated}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-row sm:flex-col items-end gap-2 shrink-0 pt-2 sm:pt-0">
-                    <button
-                      onClick={() => onOpenAdvice && onOpenAdvice(item)}
-                      className="px-3 py-1.5 rounded-xl bg-[#fdeedc] text-[#8a4816] font-bold text-xs hover:bg-[#fcd7b5] transition flex items-center gap-1 cursor-pointer whitespace-nowrap shadow-xs"
-                    >
-                      <MessageSquare size={13} /> Guidance
-                    </button>
-
-                    {!item.metTeacher ? (
-                      <button
-                        onClick={() => handleToggleMeeting(item.id, true)}
-                        className="px-3 py-1.5 rounded-xl bg-[#e7f6ee] text-[#166534] font-bold text-xs hover:bg-[#d8f0e2] transition flex items-center gap-1 cursor-pointer whitespace-nowrap"
-                      >
-                        <Check size={13} /> Mark Meeting Done
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleToggleMeeting(item.id, false)}
-                        className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 font-medium text-xs hover:bg-slate-200 transition cursor-pointer whitespace-nowrap"
-                      >
-                        Meeting Recorded ✓
-                      </button>
-                    )}
-
-                    {item.clearanceStatus !== 'Cleared' ? (
-                      <button
-                        onClick={() => handleConfirmBacklogClearance(item.id)}
-                        className="px-3 py-1.5 rounded-xl bg-[#13141b] text-white font-bold text-xs hover:bg-slate-800 transition flex items-center gap-1 cursor-pointer whitespace-nowrap"
-                      >
-                        <CheckCircle2 size={13} /> Confirm Clearance
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => onOpenCertificate && onOpenCertificate(item)}
-                        className="px-3 py-1.5 rounded-xl bg-[#e7f6ee] text-[#166534] font-bold text-xs hover:bg-[#d8f0e2] border border-[#bce8ce] transition flex items-center gap-1 cursor-pointer whitespace-nowrap shadow-xs"
-                      >
-                        <Award size={13} /> Certificate
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+          <button
+            onClick={() => onNavigate('Student Updates')}
+            className="text-xs font-bold text-[#6b21a8] hover:underline flex items-center gap-1 cursor-pointer"
+          >
+            View all updates ({backlogRecords.length}) <ChevronRight size={14} />
+          </button>
         </div>
 
-        {/* Today's Lectures & Timetable */}
-        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col justify-between">
-          <div>
-            <h4 className="text-base font-extrabold text-slate-900 tracking-tight mb-1">Today&apos;s Lectures</h4>
-            <p className="text-xs text-slate-500 mb-4">Wednesday schedule</p>
-
-            <div className="space-y-3">
-              <div className="p-3.5 rounded-2xl bg-[#fdeedc]/60 border border-[#fcd7b5] flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-bold text-[#8a4816] block">DBMS (BCA301) - Lecture</span>
-                  <span className="text-[11px] text-slate-500">10:30 AM - 11:30 AM • Room 204</span>
-                </div>
-                <span className="text-[10px] font-bold px-2 py-1 rounded-lg bg-white text-slate-700">Sec A</span>
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-[#f4e8fd]/60 border border-[#e8c7fb] flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-bold text-[#6b21a8] block">Python Lab (BCA303) - Practical</span>
-                  <span className="text-[11px] text-slate-500">01:30 PM - 03:30 PM • Lab 3</span>
-                </div>
-                <span className="text-[10px] font-bold px-2 py-1 rounded-lg bg-white text-slate-700">Sec B</span>
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-[#e7f6ee]/60 border border-[#bce8ce] flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-bold text-[#166534] block">Student Counseling & Backlogs</span>
-                  <span className="text-[11px] text-slate-500">03:30 PM - 04:30 PM • Cabin 304</span>
-                </div>
-                <span className="text-[10px] font-bold px-2 py-1 rounded-lg bg-white text-slate-700">Office</span>
-              </div>
+        <div className="space-y-3">
+          {backlogRecords.length === 0 ? (
+            <div className="p-8 text-center text-xs text-slate-400 bg-slate-50 rounded-2xl">
+              No student updates right now. All caught up!
             </div>
-          </div>
+          ) : (
+            backlogRecords.slice(0, 4).map((item) => (
+              <div
+                key={item.id}
+                className="p-4 rounded-2xl border border-slate-100 bg-[#fbfbfd] hover:bg-slate-50/70 transition-all flex flex-col sm:flex-row sm:items-start justify-between gap-3"
+              >
+                <div className="flex items-start gap-3.5 flex-1 min-w-0">
+                  <div className="w-10 h-10 rounded-2xl bg-[#13141b] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs mt-0.5">
+                    <User size={18} className="text-slate-300" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-extrabold text-sm text-slate-900">{item.studentName}</span>
+                      <span className="text-[11px] font-mono text-slate-400">{item.usn}</span>
+                    </div>
+                    <p className="text-xs text-slate-700 font-semibold mt-0.5">
+                      Subject: <span className="text-slate-900">{item.subjectName}</span>
+                    </p>
 
-          <button
-            onClick={() => onNavigate('Subjects / Classes')}
-            className="w-full mt-4 py-2.5 bg-[#13141b] text-white rounded-2xl font-bold text-xs hover:bg-slate-800 transition"
-          >
-            Manage Class Syllabi
-          </button>
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                      {!item.metTeacher ? (
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#fef3c7] text-[#b45309] border border-[#fde68a]">
+                          Teacher meeting pending
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#e7f6ee] text-[#166534] border border-[#bce8ce]">
+                          Teacher meeting: Completed
+                        </span>
+                      )}
+
+                      {item.resultStatus === 'Awaiting result' ? (
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#e0f2fe] text-[#0369a1] border border-[#bae6fd]">
+                          Awaiting result
+                        </span>
+                      ) : item.resultStatus === 'Cleared' ? (
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#e7f6ee] text-[#166534] border border-[#bce8ce]">
+                          Cleared
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                          Not cleared
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="mt-2 space-y-1 text-xs text-slate-600">
+                      <div>
+                        <span className="text-slate-400 font-medium">Assignments: </span>
+                        <span className="font-semibold text-slate-800">{item.assignmentsCompleted}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 font-medium">Repeat exam: </span>
+                        <span className="font-semibold text-slate-800">{item.repeatExamStatus}</span>
+                      </div>
+                      <div className="text-[11px] text-slate-600 bg-white p-2.5 rounded-xl border border-slate-100 mt-1.5 italic font-medium">
+                        &quot;{item.studentRemarks}&quot;
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-1 flex items-center gap-1">
+                        <Clock size={11} /> Last updated: {item.lastUpdated}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-row sm:flex-col items-end gap-2 shrink-0 pt-2 sm:pt-0">
+                  <button
+                    onClick={() => onOpenAdvice && onOpenAdvice(item)}
+                    className="px-3 py-1.5 rounded-xl bg-[#fdeedc] text-[#8a4816] font-bold text-xs hover:bg-[#fcd7b5] transition flex items-center gap-1 cursor-pointer whitespace-nowrap shadow-xs"
+                  >
+                    <MessageSquare size={13} /> Guidance
+                  </button>
+
+                  {!item.metTeacher ? (
+                    <button
+                      onClick={() => handleToggleMeeting(item.id, true)}
+                      className="px-3 py-1.5 rounded-xl bg-[#e7f6ee] text-[#166534] font-bold text-xs hover:bg-[#d8f0e2] transition flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                    >
+                      <Check size={13} /> Mark Meeting Done
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleToggleMeeting(item.id, false)}
+                      className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 font-medium text-xs hover:bg-slate-200 transition cursor-pointer whitespace-nowrap"
+                    >
+                      Meeting Recorded ✓
+                    </button>
+                  )}
+
+                  {item.clearanceStatus !== 'Cleared' ? (
+                    <button
+                      onClick={() => handleConfirmBacklogClearance(item.id)}
+                      className="px-3 py-1.5 rounded-xl bg-[#13141b] text-white font-bold text-xs hover:bg-slate-800 transition flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                    >
+                      <CheckCircle2 size={13} /> Confirm Clearance
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => onOpenCertificate && onOpenCertificate(item)}
+                      className="px-3 py-1.5 rounded-xl bg-[#e7f6ee] text-[#166534] font-bold text-xs hover:bg-[#d8f0e2] border border-[#bce8ce] transition flex items-center gap-1 cursor-pointer whitespace-nowrap shadow-xs"
+                    >
+                      <Award size={13} /> Certificate
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>
@@ -1419,146 +1337,7 @@ function FacultyStudentsTab({ students, triggerToast }) {
   );
 }
 
-// =============================================================
-// TAB 3: SUBJECTS & CLASSES VIEW
-// =============================================================
-function FacultySubjectsClassesTab({ faculty, students, triggerToast }) {
-  const [selectedSub, setSelectedSub] = useState(faculty.assignedSubjects[0]);
-  const [activeSubTab, setActiveSubTab] = useState('Enrolled Students');
 
-  return (
-    <div className="space-y-6">
-      {/* Subject Selector Cards */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-extrabold text-base text-slate-900">Your Assigned Subjects</h3>
-          <span className="text-xs font-bold text-slate-500">2 Courses Allocated</span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {faculty.assignedSubjects.map((sub, i) => (
-            <div
-              key={sub.id}
-              onClick={() => setSelectedSub(sub)}
-              className={`
-                p-6 rounded-3xl border transition-all cursor-pointer relative overflow-hidden
-                ${selectedSub.id === sub.id ? 'ring-2 ring-[#13141b] shadow-md' : 'shadow-xs hover:shadow-sm'}
-                ${i === 0 ? 'bg-[#fdeedc] border-[#fcd7b5]' : 'bg-[#f4e8fd] border-[#e8c7fb]'}
-              `}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-black text-slate-900">{sub.code}</span>
-                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-white/80 text-slate-800">
-                  {sub.credits} Credits • {sub.type}
-                </span>
-              </div>
-              <h4 className="text-base font-extrabold text-slate-900 mt-2">{sub.name}</h4>
-              <p className="text-xs text-slate-600 mt-0.5">Section: <strong>{sub.section}</strong> • {sub.enrolled} Students</p>
-
-              <div className="mt-4 pt-3 border-t border-black/5 flex items-center justify-between text-xs">
-                <span className="text-slate-600">Syllabus Progress:</span>
-                <span className="font-extrabold text-slate-900">{sub.progress}% Complete</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Detailed Management Panel */}
-      <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-          <div>
-            <h4 className="text-base font-extrabold text-slate-900">
-              {selectedSub.code} — {selectedSub.name}
-            </h4>
-            <p className="text-xs text-slate-500">Section {selectedSub.section} • {selectedSub.enrolled} Enrolled Candidates</p>
-          </div>
-
-          <div className="flex items-center gap-2 bg-[#f6f7fa] p-1 rounded-2xl">
-            {['Enrolled Students', 'Academic Syllabus'].map((t) => (
-              <button
-                key={t}
-                onClick={() => setActiveSubTab(t)}
-                className={`
-                  px-4 py-1.5 rounded-xl text-xs font-bold transition
-                  ${activeSubTab === t ? 'bg-white text-[#13141b] shadow-xs' : 'text-slate-500'}
-                `}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {activeSubTab === 'Enrolled Students' && (
-          <div className="pt-4 space-y-3">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-slate-100 text-[10px] text-slate-400 uppercase font-bold">
-                    <th className="py-2.5">Student</th>
-                    <th className="py-2.5">USN</th>
-                    <th className="py-2.5">Mid-Semester (/50)</th>
-                    <th className="py-2.5">End-Semester Score</th>
-                    <th className="py-2.5 text-right">Backlog Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {students.map((st) => (
-                    <tr key={st.id} className="hover:bg-slate-50">
-                      <td className="py-3 font-bold text-slate-900">{st.name}</td>
-                      <td className="py-3 font-mono text-slate-400">{st.usn}</td>
-                      <td className="py-3 font-semibold text-emerald-600">{st.midsemMarks} / 50</td>
-                      <td className="py-3 font-bold text-slate-800">
-                        {st.endsemMarks} / 100
-                      </td>
-                      <td className="py-3 text-right">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${st.backlogs === 0 ? 'bg-[#e7f6ee] text-[#166534]' : 'bg-[#fdeedc] text-[#8a4816]'}`}>
-                          {st.backlogs === 0 ? 'Regular' : `${st.backlogs} Backlog`}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {activeSubTab === 'Academic Syllabus' && (
-          <div className="pt-4 space-y-4 text-xs">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                <span className="font-bold text-slate-800 block mb-1">Unit 1 & 2: Fundamentals</span>
-                <p className="text-slate-500 text-[11px]">Relational Algebra, SQL DDL/DML, Normal Forms up to BCNF.</p>
-                <span className="mt-2 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full inline-block">Completed</span>
-              </div>
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                <span className="font-bold text-slate-800 block mb-1">Unit 3: Transactions & ACID</span>
-                <p className="text-slate-500 text-[11px]">Concurrency control, Serializability, 2PL Lock protocol.</p>
-                <span className="mt-2 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full inline-block">Completed</span>
-              </div>
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                <span className="font-bold text-slate-800 block mb-1">Unit 4: Indexing & Hashing</span>
-                <p className="text-slate-500 text-[11px]">B+ Trees, Dynamic hashing, Query optimization pipelines.</p>
-                <span className="mt-2 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full inline-block">In Progress (50%)</span>
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-2">
-              <button
-                onClick={() => triggerToast('Syllabus progress updated successfully!')}
-                className="px-4 py-2 bg-[#13141b] text-white rounded-xl font-bold text-xs hover:bg-slate-800"
-              >
-                Save Progress
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 // =============================================================
 // TAB 4: FACULTY APPROVALS VIEW
