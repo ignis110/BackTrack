@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -15,6 +15,8 @@ import {
   CheckCircle2,
   AlertCircle,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Activity,
   Clock,
   Mail,
@@ -43,7 +45,7 @@ const INITIAL_STATS = {
 };
 
 const INITIAL_ACTIVITIES = [
-  { id: 1, user: 'Dr. Sharma', role: 'Teacher', action: 'Approved backlog re-evaluation for BCA301', time: '12 mins ago', type: 'approval' },
+  { id: 1, user: 'Dr. Sharma', role: 'Teacher', action: 'Approved backlog registration for BCA301', time: '12 mins ago', type: 'approval' },
   { id: 2, user: 'Admin Office', role: 'Admin', action: 'Reset credentials for USN: 1BT23CS042', time: '45 mins ago', type: 'security' },
   { id: 3, user: 'Prof. Ananya Sen', role: 'Teacher', action: 'Assigned section B to Operating Systems (BCA302)', time: '2 hours ago', type: 'assignment' },
   { id: 4, user: 'System', role: 'Automation', action: 'Semester 4 grade audit completed with 0 errors', time: '5 hours ago', type: 'system' },
@@ -164,7 +166,7 @@ const INITIAL_STUDENTS = [
     backlogsCount: 1,
     status: 'Active',
     enrolledSubjects: ['BCA301', 'BCA302', 'BCA303'],
-    backlogsHistory: [{ code: 'BCA202', name: 'Discrete Mathematics', sem: 'Sem 2 (Even)', status: 'Pending Re-evaluation' }]
+    backlogsHistory: [{ code: 'BCA202', name: 'Discrete Mathematics', sem: 'Sem 2 (Even)', status: 'Exam Registration Pending' }]
   },
   {
     id: 'STU-03',
@@ -218,7 +220,7 @@ const INITIAL_STUDENTS = [
     backlogsCount: 1,
     status: 'Active',
     enrolledSubjects: ['BCA301', 'BCA302', 'BCA303'],
-    backlogsHistory: [{ code: 'BCA101', name: 'Intro to Programming in C', sem: 'Sem 1 (Odd)', status: 'Re-evaluation Scheduled' }]
+    backlogsHistory: [{ code: 'BCA101', name: 'Intro to Programming in C', sem: 'Sem 1 (Odd)', status: 'Repeat Exam Scheduled' }]
   }
 ];
 
@@ -2483,6 +2485,14 @@ function AdminBacklogsUpdatesView({ backlogRecords = [], setBacklogRecords, trig
   const [reasonFilter, setReasonFilter] = useState('All');
   const [funnelFilter, setFunnelFilter] = useState(null);
   const [selectedCertRecord, setSelectedCertRecord] = useState(null);
+  const [expandedRowIds, setExpandedRowIds] = useState({});
+
+  const toggleRowExpansion = (id) => {
+    setExpandedRowIds((prev) => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
 
   const filtered = useMemo(() => {
     return backlogRecords.filter((b) => {
@@ -2613,101 +2623,146 @@ function AdminBacklogsUpdatesView({ backlogRecords = [], setBacklogRecords, trig
               <tr className="border-b border-slate-100 bg-[#fafafc] text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                 <th className="py-4 px-6">Student Information</th>
                 <th className="py-4 px-4">Subject</th>
-                <th className="py-4 px-4">Reason for Backlog</th>
-                <th className="py-4 px-4">Repeat Exam Progress</th>
-                <th className="py-4 px-4">Student Updates (7 Fields)</th>
                 <th className="py-4 px-4">Clearance Status</th>
+                <th className="py-4 px-4 text-center">Backlog & Exam Details</th>
                 <th className="py-4 px-6 text-right">Admin Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs">
               {filtered.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
-                  <td className="py-4 px-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-[#13141b] text-white flex items-center justify-center font-bold text-xs">
-                        {item.studentName.charAt(0)}
+                <Fragment key={item.id}>
+                  <tr className={`transition-colors ${expandedRowIds[item.id] ? 'bg-slate-50/80' : 'hover:bg-slate-50/70'}`}>
+                    <td className="py-4 px-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-[#13141b] text-white flex items-center justify-center font-bold text-xs">
+                          {item.studentName.charAt(0)}
+                        </div>
+                        <div>
+                          <span className="font-extrabold text-slate-900 block">{item.studentName}</span>
+                          <span className="text-[11px] font-mono text-slate-400">{item.usn} • {item.semester}</span>
+                        </div>
                       </div>
-                      <div>
-                        <span className="font-extrabold text-slate-900 block">{item.studentName}</span>
-                        <span className="text-[11px] font-mono text-slate-400">{item.usn} • {item.semester}</span>
-                      </div>
-                    </div>
-                  </td>
+                    </td>
 
-                  <td className="py-4 px-4">
-                    <span className="font-extrabold text-slate-900 block">{item.subjectName}</span>
-                    <span className="text-[11px] font-mono text-slate-400">{item.subjectCode}</span>
-                  </td>
+                    <td className="py-4 px-4">
+                      <span className="font-extrabold text-slate-900 block">{item.subjectName}</span>
+                      <span className="text-[11px] font-mono text-slate-400">{item.subjectCode}</span>
+                    </td>
 
-                  <td className="py-4 px-4">
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold inline-block ${
-                      item.backlogReason.includes('Attendance')
-                        ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                        : 'bg-rose-50 text-rose-700 border border-rose-200'
-                    }`}>
-                      {item.backlogReason}
-                    </span>
-                  </td>
-
-                  <td className="py-4 px-4">
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold inline-block ${
-                      item.repeatExamStatus === 'Appeared'
-                        ? 'bg-[#e7f6ee] text-[#166534]'
-                        : item.repeatExamStatus === 'Scheduled'
-                        ? 'bg-[#e0f2fe] text-[#0369a1]'
-                        : item.repeatExamStatus === 'Preparing'
-                        ? 'bg-[#fef3c7] text-[#b45309]'
-                        : 'bg-slate-100 text-slate-600'
-                    }`}>
-                      {item.repeatExamStatus}
-                    </span>
-                    <span className="text-[10px] text-slate-400 block mt-0.5">
-                      Result: {item.resultStatus}
-                    </span>
-                  </td>
-
-                  <td className="py-4 px-4">
-                    <div className="space-y-1 text-[11px]">
-                      <div>Teacher Met: <strong className={item.metTeacher ? 'text-emerald-700' : 'text-amber-700'}>{item.metTeacher ? 'Yes ✓' : 'Pending'}</strong></div>
-                      <div>Assignments: <strong>{item.assignmentsCompleted}</strong></div>
-                      <div className="text-[10px] text-slate-400 truncate max-w-xs italic">&quot;{item.studentRemarks}&quot;</div>
-                      <div className="text-[10px] text-slate-400 font-mono">Updated: {item.lastUpdated}</div>
-                    </div>
-                  </td>
-
-                  <td className="py-4 px-4">
-                    {item.clearanceStatus === 'Cleared' ? (
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#e7f6ee] text-[#166534] border border-[#bce8ce] inline-flex items-center gap-1">
-                        <CheckCircle2 size={11} /> Cleared
-                      </span>
-                    ) : (
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#fdeedc] text-[#8a4816]">
-                        {item.clearanceStatus}
-                      </span>
-                    )}
-                  </td>
-
-                  <td className="py-4 px-6 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      {item.clearanceStatus !== 'Cleared' ? (
-                        <button
-                          onClick={() => handleAdminClearance(item.id)}
-                          className="px-3 py-1.5 rounded-xl bg-[#13141b] text-white font-bold text-xs hover:bg-slate-800 transition cursor-pointer whitespace-nowrap"
-                        >
-                          Confirm Clearance
-                        </button>
+                    <td className="py-4 px-4">
+                      {item.clearanceStatus === 'Cleared' ? (
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#e7f6ee] text-[#166534] border border-[#bce8ce] inline-flex items-center gap-1">
+                          <CheckCircle2 size={11} /> Cleared
+                        </span>
                       ) : (
-                        <button
-                          onClick={() => setSelectedCertRecord(item)}
-                          className="px-2.5 py-1.5 rounded-xl bg-[#e7f6ee] text-[#166534] hover:bg-[#d8f0e2] border border-[#bce8ce] font-bold text-xs flex items-center gap-1 cursor-pointer whitespace-nowrap shadow-xs"
-                        >
-                          <Award size={13} /> Certificate
-                        </button>
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#fdeedc] text-[#8a4816]">
+                          {item.clearanceStatus}
+                        </span>
                       )}
-                    </div>
-                  </td>
-                </tr>
+                    </td>
+
+                    <td className="py-4 px-4 text-center">
+                      <button
+                        onClick={() => toggleRowExpansion(item.id)}
+                        className={`px-3 py-1.5 rounded-xl font-bold text-xs inline-flex items-center gap-1.5 transition cursor-pointer ${
+                          expandedRowIds[item.id]
+                            ? 'bg-slate-900 text-white shadow-xs'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        <span>{expandedRowIds[item.id] ? 'Hide Details' : 'Details'}</span>
+                        {expandedRowIds[item.id] ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                      </button>
+                    </td>
+
+                    <td className="py-4 px-6 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {item.clearanceStatus === 'Cleared' && (
+                          <button
+                            onClick={() => setSelectedCertRecord(item)}
+                            className="px-2.5 py-1.5 rounded-xl bg-[#e7f6ee] text-[#166534] hover:bg-[#d8f0e2] border border-[#bce8ce] font-bold text-xs flex items-center gap-1 cursor-pointer whitespace-nowrap shadow-xs"
+                          >
+                            <Award size={13} /> Certificate
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+
+                  {/* Expandable Details Drawer */}
+                  {expandedRowIds[item.id] && (
+                    <tr className="bg-slate-50/80 border-b border-slate-100">
+                      <td colSpan={5} className="py-3 px-6">
+                        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                          {/* 1. Reason for Backlog */}
+                          <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-100">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                              Reason for Backlog
+                            </span>
+                            <div className="space-y-1">
+                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold inline-block ${
+                                item.backlogReason.includes('Attendance')
+                                  ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                  : 'bg-rose-50 text-rose-700 border border-rose-200'
+                              }`}>
+                                {item.backlogReason}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* 2. Repeat Exam Progress */}
+                          <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-100">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                              Repeat Exam Progress
+                            </span>
+                            <div className="space-y-1">
+                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold inline-block ${
+                                item.repeatExamStatus === 'Appeared'
+                                  ? 'bg-[#e7f6ee] text-[#166534]'
+                                  : item.repeatExamStatus === 'Scheduled'
+                                  ? 'bg-[#e0f2fe] text-[#0369a1]'
+                                  : item.repeatExamStatus === 'Preparing'
+                                  ? 'bg-[#fef3c7] text-[#b45309]'
+                                  : 'bg-slate-100 text-slate-600'
+                              }`}>
+                                {item.repeatExamStatus}
+                              </span>
+                              <div className="text-[11px] text-slate-500 mt-1">
+                                Result: <strong className="text-slate-800">{item.resultStatus}</strong>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* 3. Student Updates */}
+                          <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-100">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                              Student Updates
+                            </span>
+                            <div className="space-y-1.5 text-xs">
+                              <div className="flex items-center justify-between">
+                                <span className="text-slate-500">Teacher Met:</span>
+                                <strong className={item.metTeacher ? 'text-emerald-700' : 'text-amber-700'}>
+                                  {item.metTeacher ? 'Yes ✓' : 'Pending'}
+                                </strong>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-slate-500">Assignments:</span>
+                                <strong className={item.assignmentsCompleted === 'Completed' ? 'text-emerald-700' : 'text-slate-700'}>
+                                  {item.assignmentsCompleted}
+                                </strong>
+                              </div>
+                              {item.studentRemarks && (
+                                <div className="text-[11px] text-slate-500 italic pt-1 border-t border-slate-100 truncate">
+                                  &quot;{item.studentRemarks}&quot;
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               ))}
             </tbody>
           </table>

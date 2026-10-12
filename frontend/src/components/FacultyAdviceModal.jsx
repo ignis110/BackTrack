@@ -12,7 +12,7 @@ export default function FacultyAdviceModal({ record, facultyName = 'Dr. Ramesh S
     'Attend cabin consultation this Wednesday at 11:00 AM with your lecture notes.',
     'Complete and submit Unit 3 & 4 question bank assignments to faculty cabin.',
     'Remedial coursework hours verified. Approved for repeat examination hall ticket.',
-    'Practice previous 3 years question papers before the scheduled re-evaluation.',
+    'Practice previous 3 years question papers before the scheduled repeat examination.',
     'Repeat examination marks verified. Clearance ready for endorsement.'
   ];
 

@@ -23,6 +23,7 @@ import {
   Check,
   CheckCheck,
   UserCheck,
+  Users,
   MessageSquare,
   Send,
   Filter,
@@ -157,26 +158,24 @@ const ENROLLED_SUBJECTS = [
 
 const STUDENT_REQUESTS = [
   {
-    id: 'REQ-STU-01',
-    subject: 'BCA303 - Python Programming',
-    semesterCycle: 'Odd Semester',
-    examType: 'Mid-Semester Exam',
-    type: 'Mid-Semester Re-evaluation',
-    reason: 'Requesting re-evaluation of Section B problem solving answers.',
-    date: 'Oct 01, 2026',
+    id: 'MEET-101',
+    subject: 'BCA303 - Python Programming (Prof. Rajesh V)',
+    type: 'Backlog Doubt Clearance & Subject Guidance',
+    slot: 'Faculty Cabin (Morning Slot: 10:30 AM - 11:30 AM)',
+    reason: 'Need guidance on Unit 3 recursion and practical lab assignments.',
+    date: 'Oct 08, 2026',
     status: 'Approved',
-    facultyResponse: 'Mid-semester score upgraded to 48/50 upon verification.'
+    facultyResponse: 'Meeting slot confirmed. Please visit Cabin #204 with your notes.'
   },
   {
-    id: 'REQ-STU-02',
-    subject: 'BCA302 - Operating Systems',
-    semesterCycle: 'Odd Semester',
-    examType: 'End-Semester Exam',
-    type: 'End-Semester Hall Ticket Endorsement',
-    reason: 'Requesting early hall ticket verification for upcoming semester finals.',
-    date: 'Oct 03, 2026',
+    id: 'MEET-102',
+    subject: 'BCA302 - Operating Systems (Prof. Ananya Sen)',
+    type: 'Remedial Coursework & Assignment Verification',
+    slot: 'Faculty Cabin (Afternoon Slot: 02:30 PM - 03:30 PM)',
+    reason: 'Submitted Unit 1-2 remedial questions; requesting sign-off and review.',
+    date: 'Oct 10, 2026',
     status: 'Pending',
-    facultyResponse: 'Under review by Dean of Academic Examinations.'
+    facultyResponse: 'Pending faculty slot confirmation.'
   }
 ];
 
@@ -191,7 +190,7 @@ const NOTIFICATIONS_LIST = [
   },
   {
     id: 'N-02',
-    title: 'Backlog Re-evaluation Portal Open',
+    title: 'Backlog Registration Portal Open',
     category: 'Circular',
     time: '1 day ago',
     body: 'Students with backlogs from Sem 1 and 2 can register till Oct 14.',
@@ -282,14 +281,12 @@ export default function StudentDashboard() {
     };
   }, []);
 
-  // New Request Modal
+  // Teacher Meeting Request Modal
   const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
   const [requestForm, setRequestForm] = useState({
-    subject: 'BCA301 - Database Management Systems',
-    semesterCycle: 'Odd Semester',
-    semester: 'Semester 3',
-    examType: 'Mid-Semester Exam',
-    type: 'Mid-Semester Re-evaluation',
+    subject: 'BCA301 - Database Management Systems (Prof. Sharma)',
+    meetingSlot: 'Faculty Cabin (Morning Slot: 10:30 AM - 11:30 AM)',
+    type: 'Backlog Doubt Clearance & Subject Guidance',
     reason: ''
   });
 
@@ -308,26 +305,22 @@ export default function StudentDashboard() {
   const handleCreateRequest = (e) => {
     e.preventDefault();
     const newReq = {
-      id: `REQ-STU-${Math.floor(10 + Math.random() * 90)}`,
+      id: `MEET-${Math.floor(100 + Math.random() * 900)}`,
       subject: requestForm.subject,
-      semesterCycle: requestForm.semesterCycle,
-      semester: requestForm.semester,
-      examType: requestForm.examType,
       type: requestForm.type,
+      slot: requestForm.meetingSlot,
       reason: requestForm.reason,
-      date: 'Today, Oct 7',
+      date: 'Today, Oct 13',
       status: 'Pending',
-      facultyResponse: `Petition for ${requestForm.examType} submitted for faculty advisor review.`
+      facultyResponse: `Meeting requested with course instructor for ${requestForm.meetingSlot}.`
     };
     setRequests([newReq, ...requests]);
-    triggerToast(`Petition submitted for ${requestForm.examType} (${requestForm.semesterCycle})!`);
+    triggerToast(`Teacher meeting requested for ${requestForm.subject}!`);
     setIsApplyModalOpen(false);
     setRequestForm({
-      subject: 'BCA301 - Database Management Systems',
-      semesterCycle: 'Odd Semester',
-      semester: 'Semester 3',
-      examType: 'Mid-Semester Exam',
-      type: 'Mid-Semester Re-evaluation',
+      subject: 'BCA301 - Database Management Systems (Prof. Sharma)',
+      meetingSlot: 'Faculty Cabin (Morning Slot: 10:30 AM - 11:30 AM)',
+      type: 'Backlog Doubt Clearance & Subject Guidance',
       reason: ''
     });
   };
@@ -412,11 +405,11 @@ export default function StudentDashboard() {
               onClick={() => { setActiveTab('Backlog Tracking'); setIsMobileMenuOpen(false); }}
             />
             <SidebarBtn
-              icon={<FileCheck size={19} />}
-              label="My Requests"
-              active={activeTab === 'My Requests'}
+              icon={<Users size={19} />}
+              label="Teacher Meetings"
+              active={activeTab === 'Teacher Meetings' || activeTab === 'My Requests'}
               badge={requests.length}
-              onClick={() => { setActiveTab('My Requests'); setIsMobileMenuOpen(false); }}
+              onClick={() => { setActiveTab('Teacher Meetings'); setIsMobileMenuOpen(false); }}
             />
             <SidebarBtn
               icon={<Bell size={19} />}
@@ -510,9 +503,9 @@ export default function StudentDashboard() {
           <div className="flex items-center gap-3.5">
             <button
               onClick={() => setIsApplyModalOpen(true)}
-              className="hidden sm:flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-[#13141b] text-white text-xs font-bold hover:bg-slate-800 transition shadow-xs"
+              className="hidden sm:flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-[#13141b] text-white text-xs font-bold hover:bg-slate-800 transition shadow-xs cursor-pointer"
             >
-              <Plus size={15} /> Apply / Petition
+              <Plus size={15} /> Request Teacher Meet
             </button>
 
             <button
@@ -572,7 +565,7 @@ export default function StudentDashboard() {
             />
           )}
 
-          {activeTab === 'My Requests' && (
+          {(activeTab === 'Teacher Meetings' || activeTab === 'My Requests') && (
             <StudentRequestsTab
               requests={requests}
               openApplyModal={() => setIsApplyModalOpen(true)}
@@ -597,129 +590,80 @@ export default function StudentDashboard() {
         </div>
       </main>
 
-      {/* Modal: New Student Petition / Re-evaluation Application */}
+      {/* Modal: Request Teacher Meeting */}
       {isApplyModalOpen && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div>
-                <h3 className="font-extrabold text-base text-slate-900">Academic Exam Petition</h3>
-                <p className="text-[11px] text-slate-400">Mid-Semester & End-Semester evaluation request</p>
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-[#fdeedc] text-[#8a4816] flex items-center justify-center font-bold">
+                  <Users size={20} />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base text-slate-900">Request Teacher Meet</h3>
+                  <p className="text-[11px] text-slate-500">Schedule 1-on-1 cabin consultation & backlog guidance</p>
+                </div>
               </div>
-              <button onClick={() => setIsApplyModalOpen(false)} className="text-slate-400 hover:text-slate-700">
+              <button onClick={() => setIsApplyModalOpen(false)} className="text-slate-400 hover:text-slate-700 cursor-pointer">
                 <X size={18} />
               </button>
             </div>
 
             <form onSubmit={handleCreateRequest} className="space-y-4 mt-4 text-xs">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">Semester Cycle</label>
-                  <select
-                    value={requestForm.semesterCycle}
-                    onChange={(e) => {
-                      const newCycle = e.target.value;
-                      setRequestForm({
-                        ...requestForm,
-                        semesterCycle: newCycle,
-                        semester: newCycle === 'Odd Semester' ? 'Semester 3' : 'Semester 2'
-                      });
-                    }}
-                    className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 outline-none font-medium"
-                  >
-                    <option value="Odd Semester">Odd Semester (Sem 1, 3, 5, 7)</option>
-                    <option value="Even Semester">Even Semester (Sem 2, 4, 6, 8)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">Semester</label>
-                  <select
-                    value={requestForm.semester}
-                    onChange={(e) => setRequestForm({ ...requestForm, semester: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 outline-none font-medium"
-                  >
-                    {requestForm.semesterCycle === 'Odd Semester' ? (
-                      <>
-                        <option value="Semester 1">Semester 1 (Odd)</option>
-                        <option value="Semester 3">Semester 3 (Odd)</option>
-                        <option value="Semester 5">Semester 5 (Odd)</option>
-                        <option value="Semester 7">Semester 7 (Odd)</option>
-                      </>
-                    ) : (
-                      <>
-                        <option value="Semester 2">Semester 2 (Even)</option>
-                        <option value="Semester 4">Semester 4 (Even)</option>
-                        <option value="Semester 6">Semester 6 (Even)</option>
-                        <option value="Semester 8">Semester 8 (Even)</option>
-                      </>
-                    )}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">Examination Scope</label>
-                  <select
-                    value={requestForm.examType}
-                    onChange={(e) => setRequestForm({ ...requestForm, examType: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 outline-none font-medium"
-                  >
-                    <option value="Mid-Semester Exam">Mid-Semester Exam (Midsem)</option>
-                    <option value="End-Semester Exam">End-Semester Exam (Endsem)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">Petition Category</label>
-                  <select
-                    value={requestForm.type}
-                    onChange={(e) => setRequestForm({ ...requestForm, type: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 outline-none font-medium"
-                  >
-                    {requestForm.examType === 'Mid-Semester Exam' ? (
-                      <>
-                        <option value="Mid-Semester Re-evaluation">Mid-Semester Re-evaluation</option>
-                        <option value="Mid-Semester Retest / Make-up">Mid-Semester Retest / Make-up</option>
-                        <option value="Mid-Semester Internal Totaling">Mid-Semester Internal Totaling</option>
-                      </>
-                    ) : (
-                      <>
-                        <option value="End-Semester Backlog Exam Registration">End-Semester Backlog Exam Registration</option>
-                        <option value="End-Semester Script Re-checking">End-Semester Script Re-checking</option>
-                        <option value="End-Semester Hall Ticket Endorsement">End-Semester Hall Ticket Endorsement</option>
-                      </>
-                    )}
-                  </select>
-                </div>
-              </div>
-
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Select Subject</label>
+                <label className="font-bold text-slate-700 block mb-1">Select Subject & Faculty</label>
                 <select
                   value={requestForm.subject}
                   onChange={(e) => setRequestForm({ ...requestForm, subject: e.target.value })}
                   className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 outline-none font-medium"
                 >
-                  <option value="BCA301 - Database Management Systems (Sem 3 - Odd)">BCA301 - Database Management Systems (Sem 3 - Odd)</option>
-                  <option value="BCA302 - Operating Systems (Sem 3 - Odd)">BCA302 - Operating Systems (Sem 3 - Odd)</option>
-                  <option value="BCA303 - Python Programming (Sem 3 - Odd)">BCA303 - Python Programming (Sem 3 - Odd)</option>
-                  <option value="BCA304 - Discrete Mathematical Structures (Sem 3 - Odd)">BCA304 - Discrete Mathematical Structures (Sem 3 - Odd)</option>
-                  <option value="BCA201 - Data Structures with C++ (Sem 2 - Even)">BCA201 - Data Structures with C++ (Sem 2 - Even)</option>
-                  <option value="BCA202 - Computer Architecture (Sem 2 - Even)">BCA202 - Computer Architecture (Sem 2 - Even)</option>
+                  <option value="BCA301 - Database Management Systems (Prof. Sharma)">BCA301 - Database Management Systems (Prof. Sharma)</option>
+                  <option value="BCA302 - Operating Systems (Prof. Ananya Sen)">BCA302 - Operating Systems (Prof. Ananya Sen)</option>
+                  <option value="BCA303 - Python Programming (Prof. Rajesh V)">BCA303 - Python Programming (Prof. Rajesh V)</option>
+                  <option value="BCA304 - Discrete Mathematical Structures (Dr. Iyer)">BCA304 - Discrete Mathematical Structures (Dr. Iyer)</option>
+                  <option value="BCA201 - Data Structures with C++ (Prof. Sen)">BCA201 - Data Structures with C++ (Prof. Sen)</option>
+                  <option value="BCA202 - Computer Architecture (Dr. Mehta)">BCA202 - Computer Architecture (Dr. Mehta)</option>
                 </select>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Preferred Meeting Slot</label>
+                  <select
+                    value={requestForm.meetingSlot}
+                    onChange={(e) => setRequestForm({ ...requestForm, meetingSlot: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 outline-none font-medium"
+                  >
+                    <option value="Faculty Cabin (Morning Slot: 10:30 AM - 11:30 AM)">Faculty Cabin (Morning: 10:30 - 11:30 AM)</option>
+                    <option value="Faculty Cabin (Afternoon Slot: 02:30 PM - 03:30 PM)">Faculty Cabin (Afternoon: 2:30 - 3:30 PM)</option>
+                    <option value="Department Lab (Evening Slot: 04:00 PM - 05:00 PM)">Department Lab (Evening: 4:00 - 5:00 PM)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Meeting Purpose</label>
+                  <select
+                    value={requestForm.type}
+                    onChange={(e) => setRequestForm({ ...requestForm, type: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 outline-none font-medium"
+                  >
+                    <option value="Backlog Doubt Clearance & Subject Guidance">Backlog Doubt Clearance & Guidance</option>
+                    <option value="Remedial Coursework & Assignment Verification">Remedial Coursework Verification</option>
+                    <option value="Mid-Semester Retest / Make-up Consultation">Mid-Semester Retest Consultation</option>
+                    <option value="Practical & Lab Examination Preparation">Lab Examination Preparation</option>
+                  </select>
+                </div>
+              </div>
+
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Reason / Academic Justification</label>
+                <label className="font-bold text-slate-700 block mb-1">Topics to Discuss / Note to Teacher</label>
                 <textarea
                   required
                   rows={3}
                   value={requestForm.reason}
                   onChange={(e) => setRequestForm({ ...requestForm, reason: e.target.value })}
-                  placeholder="Detail your request for faculty and examination branch evaluation..."
-                  className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:bg-white"
+                  placeholder="Mention topics, syllabus units, or questions you wish to clarify during cabin hours..."
+                  className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:bg-white text-xs"
                 />
               </div>
 
@@ -727,15 +671,15 @@ export default function StudentDashboard() {
                 <button
                   type="button"
                   onClick={() => setIsApplyModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-bold"
+                  className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-bold cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-[#13141b] text-white font-bold hover:bg-slate-800"
+                  className="px-5 py-2.5 rounded-xl bg-[#13141b] text-white font-bold hover:bg-slate-800 transition cursor-pointer"
                 >
-                  Submit Application
+                  Request Meeting Slot
                 </button>
               </div>
             </form>
@@ -823,7 +767,7 @@ function StudentDashboardTab({ profile, subjects, requests, backlogRecords = [],
             onClick={openApplyModal}
             className="text-xs font-bold text-[#13141b] bg-[#e7f6ee] hover:bg-[#d8f0e2] px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-xs"
           >
-            Submit Petition <ChevronRight size={14} />
+            Request Teacher Meet <ChevronRight size={14} />
           </button>
         </div>
 
@@ -909,7 +853,7 @@ function StudentDashboardTab({ profile, subjects, requests, backlogRecords = [],
         </div>
       </div>
 
-      {/* Subjects Overview & Petitions Status */}
+      {/* Subjects Overview & Teacher Meetings Status */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-white rounded-3xl p-6 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
           <div className="flex items-center justify-between mb-4">
@@ -951,12 +895,12 @@ function StudentDashboardTab({ profile, subjects, requests, backlogRecords = [],
           </div>
         </div>
 
-        {/* Petitions / Requests Status */}
+        {/* Teacher Meetings Status */}
         <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h4 className="text-base font-extrabold text-slate-900 tracking-tight">Submitted Petitions</h4>
-              <button onClick={() => onNavigate('My Requests')} className="text-xs font-bold text-[#6b21a8] hover:underline">
+              <h4 className="text-base font-extrabold text-slate-900 tracking-tight">Teacher Meetings</h4>
+              <button onClick={() => onNavigate('Teacher Meetings')} className="text-xs font-bold text-[#6b21a8] hover:underline cursor-pointer">
                 View all
               </button>
             </div>
@@ -978,9 +922,9 @@ function StudentDashboardTab({ profile, subjects, requests, backlogRecords = [],
 
           <button
             onClick={openApplyModal}
-            className="w-full mt-4 py-2.5 bg-[#13141b] text-white rounded-2xl font-bold text-xs hover:bg-slate-800 transition"
+            className="w-full mt-4 py-2.5 bg-[#13141b] text-white rounded-2xl font-bold text-xs hover:bg-slate-800 transition cursor-pointer"
           >
-            + Apply for Re-eval or Waiver
+            + Request Teacher Meet
           </button>
         </div>
       </div>
@@ -1696,13 +1640,13 @@ function StudentBacklogsTab({
       {/* Resolution Pipeline Visualizer */}
       <div className="bg-white rounded-3xl p-7 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
         <h4 className="font-extrabold text-base text-slate-900 mb-1">Standard Backlog Resolution Workflow</h4>
-        <p className="text-xs text-slate-500 mb-6">Step-by-step examination and re-evaluation procedure</p>
+        <p className="text-xs text-slate-500 mb-6">Step-by-step examination and backlog resolution procedure</p>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
           <div className="p-4 rounded-2xl bg-[#fdeedc]/60 border border-[#fcd7b5]">
             <span className="w-6 h-6 rounded-full bg-[#f7d6b8] text-[#8a4816] flex items-center justify-center font-bold text-xs mb-2">1</span>
-            <span className="font-bold text-[#8a4816] block">Submit Petition & Progress</span>
-            <p className="text-[11px] text-slate-500 mt-1">Submit petition via BackTrack portal and update progress reports for teacher guidance.</p>
+            <span className="font-bold text-[#8a4816] block">Teacher Meeting & Guidance</span>
+            <p className="text-[11px] text-slate-500 mt-1">Request 1-on-1 cabin consultation via BackTrack portal and review backlog progress with your teacher.</p>
           </div>
 
           <div className="p-4 rounded-2xl bg-[#f4e8fd]/60 border border-[#e8c7fb]">
@@ -1801,21 +1745,21 @@ function StudentBacklogsTab({
 }
 
 // =============================================================
-// TAB 4: MY REQUESTS & PETITIONS
+// TAB 4: TEACHER MEETINGS & CONSULTATIONS
 // =============================================================
 function StudentRequestsTab({ requests, openApplyModal }) {
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-[0_6px_20px_rgba(0,0,0,0.02)] flex items-center justify-between">
         <div>
-          <h3 className="font-extrabold text-base text-slate-900">Your Submitted Petitions</h3>
-          <p className="text-xs text-slate-500">Track real-time status updates and comments from faculty</p>
+          <h3 className="font-extrabold text-base text-slate-900">Teacher Meetings & Consultations</h3>
+          <p className="text-xs text-slate-500">Track 1-on-1 cabin consultations, meeting slots, and faculty guidance</p>
         </div>
         <button
           onClick={openApplyModal}
-          className="flex items-center gap-1.5 px-4 py-2 bg-[#13141b] text-white rounded-2xl text-xs font-bold hover:bg-slate-800 transition"
+          className="flex items-center gap-1.5 px-4 py-2 bg-[#13141b] text-white rounded-2xl text-xs font-bold hover:bg-slate-800 transition cursor-pointer"
         >
-          <Plus size={15} /> New Petition
+          <Plus size={15} /> Request Teacher Meet
         </button>
       </div>
 
@@ -1828,14 +1772,14 @@ function StudentRequestsTab({ requests, openApplyModal }) {
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-black text-sm text-slate-900">{r.type}</span>
+                {r.slot && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#fdeedc] text-[#8a4816]">
+                    {r.slot}
+                  </span>
+                )}
                 {r.semesterCycle && (
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${r.semesterCycle.includes('Odd') ? 'bg-[#fdeedc] text-[#8a4816]' : 'bg-[#e9f2fc] text-[#1e40af]'}`}>
                     {r.semesterCycle}
-                  </span>
-                )}
-                {r.examType && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#f4e8fd] text-[#6b21a8]">
-                    {r.examType}
                   </span>
                 )}
                 <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700">
@@ -1847,16 +1791,16 @@ function StudentRequestsTab({ requests, openApplyModal }) {
               </div>
 
               <p className="text-xs text-slate-600 mt-2 bg-slate-50 p-3 rounded-2xl max-w-xl">
-                <strong>Your Reason:</strong> &ldquo;{r.reason}&rdquo;
+                <strong>Discussion Agenda:</strong> &ldquo;{r.reason}&rdquo;
               </p>
 
               {r.facultyResponse && (
                 <p className="text-xs text-[#6b21a8] mt-2 bg-[#f4e8fd]/40 p-3 rounded-2xl max-w-xl border border-[#e8c7fb]">
-                  <strong>Faculty Feedback:</strong> {r.facultyResponse}
+                  <strong>Teacher Feedback:</strong> {r.facultyResponse}
                 </p>
               )}
 
-              <span className="text-[10px] text-slate-400 block mt-2">Submitted: {r.date}</span>
+              <span className="text-[10px] text-slate-400 block mt-2">Requested: {r.date}</span>
             </div>
 
             <div className="shrink-0">

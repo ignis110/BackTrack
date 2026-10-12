@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -15,6 +15,8 @@ import {
   Menu,
   Sparkles,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   GraduationCap,
   Calendar,
   FileCheck,
@@ -96,7 +98,7 @@ const INITIAL_ASSIGNED_STUDENTS = [
     pythonMarks: 78,
     backlogs: 1,
     status: 'Backlog Candidate',
-    history: [{ code: 'BCA202', name: 'Discrete Mathematics', sem: 'Sem 2 (Even)', status: 'Re-evaluation Requested' }]
+    history: [{ code: 'BCA202', name: 'Discrete Mathematics', sem: 'Sem 2 (Even)', status: 'Exam Registration Pending' }]
   },
   {
     id: 'STU-03',
@@ -205,50 +207,46 @@ const INITIAL_ASSIGNED_STUDENTS = [
 
 const INITIAL_REQUESTS = [
   {
-    id: 'REQ-101',
+    id: 'MEET-101',
     studentName: 'Sneha Deshmukh',
     usn: '1BT23BCA048',
-    type: 'Backlog Re-evaluation',
+    type: 'Backlog Doubt Clearance & Guidance',
     subject: 'BCA202 - Discrete Mathematics (Even Sem)',
-    examType: 'End-Semester Exam',
-    semesterCycle: 'Even Semester',
-    reason: 'Scored 32/100, confident about answers in Unit 3 graph theory questions.',
+    slot: 'Faculty Cabin (Morning Slot: 10:30 AM - 11:30 AM)',
+    reason: 'Scored 32/100, requesting cabin guidance on Unit 3 graph theory questions.',
     date: 'Oct 06, 2026',
     status: 'Pending'
   },
   {
-    id: 'REQ-102',
+    id: 'MEET-102',
     studentName: 'Karan Johar',
     usn: '1BT23BCA055',
-    type: 'Mid-Semester Retest Permission',
+    type: 'Mid-Semester Retest Consultation',
     subject: 'BCA301 - DBMS Lab & Theory (Odd Sem)',
-    examType: 'Mid-Semester Exam',
-    semesterCycle: 'Odd Semester',
-    reason: 'Hospitalized for 8 days in September with viral fever. Medical fitness certificate submitted for Mid-Semester make-up retest.',
+    slot: 'Faculty Cabin (Afternoon Slot: 02:30 PM - 03:30 PM)',
+    reason: 'Hospitalized for 8 days in September with viral fever. Medical fitness certificate submitted for consultation.',
     date: 'Oct 05, 2026',
     status: 'Pending'
   },
   {
-    id: 'REQ-103',
+    id: 'MEET-103',
     studentName: 'Vikram Mehta',
     usn: '1BT23BCA089',
-    type: 'Re-exam Hall Ticket Signature',
+    type: 'Remedial Coursework Verification',
     subject: 'BCA101 - Programming in C (Odd Sem)',
-    examType: 'End-Semester Exam',
-    semesterCycle: 'Odd Semester',
-    reason: 'Exam scheduled on Oct 20. Backlog fee of ₹750 verified by accounts department.',
+    slot: 'Faculty Cabin (Morning Slot: 11:00 AM - 12:00 PM)',
+    reason: 'Completed remedial lab questions. Requesting faculty cabin sign-off.',
     date: 'Oct 04, 2026',
     status: 'Approved'
   },
   {
-    id: 'REQ-104',
+    id: 'MEET-104',
     studentName: 'Aarav Patel',
     usn: '1BT23BCA014',
-    type: 'Mid-Semester Re-evaluation',
+    type: 'Lab Work & Practical Review',
     subject: 'BCA303 - Python Programming (Odd Sem)',
-    examType: 'Mid-Semester Exam',
-    semesterCycle: 'Odd Semester',
-    reason: 'Requesting review of assignment #2 scores and mid-semester coding evaluation.',
+    slot: 'Department Lab (Evening Slot: 03:30 PM - 04:30 PM)',
+    reason: 'Requesting review of assignment #2 scores and practical lab code.',
     date: 'Oct 01, 2026',
     status: 'Approved'
   }
@@ -265,9 +263,9 @@ const INITIAL_NOTIFICATIONS = [
   },
   {
     id: 'NOTIF-02',
-    title: 'New Backlog Re-evaluation Petition',
+    title: 'New Teacher Meeting Request',
     category: 'Student Requests',
-    body: 'Sneha Deshmukh (1BT23BCA048) requested re-checking in Discrete Mathematics.',
+    body: 'Sneha Deshmukh (1BT23BCA048) requested cabin consultation in Discrete Mathematics.',
     time: '5 hours ago',
     read: false
   },
@@ -470,12 +468,12 @@ export default function FacultyDashboard() {
             />
 
             <SidebarBtn
-              icon={<FileCheck size={19} />}
-              label="Approvals"
-              active={activeTab === 'Approvals'}
+              icon={<Users size={19} />}
+              label="Teacher Meetings"
+              active={activeTab === 'Teacher Meetings' || activeTab === 'Approvals'}
               badge={pendingApprovalsCount > 0 ? pendingApprovalsCount : undefined}
               badgeColor="bg-[#fdeedc] text-[#8a4816]"
-              onClick={() => { setActiveTab('Approvals'); setIsMobileMenuOpen(false); }}
+              onClick={() => { setActiveTab('Teacher Meetings'); setIsMobileMenuOpen(false); }}
             />
             <SidebarBtn
               icon={<Bell size={19} />}
@@ -620,7 +618,7 @@ export default function FacultyDashboard() {
 
 
 
-          {activeTab === 'Approvals' && (
+          {(activeTab === 'Teacher Meetings' || activeTab === 'Approvals') && (
             <FacultyApprovalsTab
               requests={requests}
               setRequests={setRequests}
@@ -967,14 +965,7 @@ function FacultyDashboardTab({
                     </button>
                   )}
 
-                  {item.clearanceStatus !== 'Cleared' ? (
-                    <button
-                      onClick={() => handleConfirmBacklogClearance(item.id)}
-                      className="px-3 py-1.5 rounded-xl bg-[#13141b] text-white font-bold text-xs hover:bg-slate-800 transition flex items-center gap-1 cursor-pointer whitespace-nowrap"
-                    >
-                      <CheckCircle2 size={13} /> Confirm Clearance
-                    </button>
-                  ) : (
+                  {item.clearanceStatus === 'Cleared' && (
                     <button
                       onClick={() => onOpenCertificate && onOpenCertificate(item)}
                       className="px-3 py-1.5 rounded-xl bg-[#e7f6ee] text-[#166534] font-bold text-xs hover:bg-[#d8f0e2] border border-[#bce8ce] transition flex items-center gap-1 cursor-pointer whitespace-nowrap shadow-xs"
@@ -1370,8 +1361,8 @@ function FacultyApprovalsTab({ requests, setRequests, triggerToast }) {
       {/* Top Filter Bar */}
       <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-[0_6px_20px_rgba(0,0,0,0.02)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h3 className="font-extrabold text-base text-slate-900">Student Petitions & Clearances</h3>
-          <p className="text-xs text-slate-500">Sign off on Mid-Semester re-evaluations, End-Semester backlog requests, and hall tickets</p>
+          <h3 className="font-extrabold text-base text-slate-900">Teacher Meetings & Student Consultations</h3>
+          <p className="text-xs text-slate-500">Review and schedule 1-on-1 cabin consultations, remedial sessions, and student guidance</p>
         </div>
 
         <div className="flex items-center gap-1.5 p-1 bg-[#f6f7fa] rounded-2xl">
@@ -1404,6 +1395,11 @@ function FacultyApprovalsTab({ requests, setRequests, triggerToast }) {
                 <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#fdeedc] text-[#8a4816]">
                   {req.type}
                 </span>
+                {req.slot && (
+                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#e9f2fc] text-[#1e40af]">
+                    {req.slot}
+                  </span>
+                )}
                 <span
                   className={`
                     text-[10px] font-bold px-2.5 py-0.5 rounded-full
@@ -1420,7 +1416,7 @@ function FacultyApprovalsTab({ requests, setRequests, triggerToast }) {
               <p className="text-xs text-slate-600 mt-1 bg-slate-50 p-3 rounded-2xl max-w-xl">
                 &ldquo;{req.reason}&rdquo;
               </p>
-              <span className="text-[10px] text-slate-400 block mt-2">Submitted on: {req.date}</span>
+              <span className="text-[10px] text-slate-400 block mt-2">Requested: {req.date}</span>
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
@@ -1428,19 +1424,19 @@ function FacultyApprovalsTab({ requests, setRequests, triggerToast }) {
                 <>
                   <button
                     onClick={() => { setRemarkModal(req); setRemarkText(''); }}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-[#13141b] text-white rounded-2xl text-xs font-bold hover:bg-slate-800 transition shadow-xs"
+                    className="flex items-center gap-1.5 px-4 py-2 bg-[#13141b] text-white rounded-2xl text-xs font-bold hover:bg-slate-800 transition shadow-xs cursor-pointer"
                   >
-                    Take Action
+                    Confirm Slot
                   </button>
                 </>
               ) : (
                 <div className="text-right">
-                  <span className="text-xs font-bold text-slate-400 block">Decision Finalized</span>
+                  <span className="text-xs font-bold text-slate-400 block">Slot Finalized</span>
                   <button
                     onClick={() => { setRemarkModal(req); setRemarkText(''); }}
-                    className="text-[11px] font-bold text-[#6b21a8] hover:underline"
+                    className="text-[11px] font-bold text-[#6b21a8] hover:underline cursor-pointer"
                   >
-                    Modify Status
+                    Modify Slot
                   </button>
                 </div>
               )}
@@ -1453,18 +1449,18 @@ function FacultyApprovalsTab({ requests, setRequests, triggerToast }) {
       {remarkModal && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
-            <h4 className="font-extrabold text-base text-slate-900">Review Request</h4>
+            <h4 className="font-extrabold text-base text-slate-900">Confirm Teacher Meeting Slot</h4>
             <p className="text-xs text-slate-500 mt-1">
-              Petition from <strong>{remarkModal.studentName}</strong> ({remarkModal.type})
+              Meeting request from <strong>{remarkModal.studentName}</strong> ({remarkModal.type})
             </p>
 
             <div className="mt-4">
-              <label className="font-bold text-slate-700 text-xs block mb-1">Faculty Remarks (Optional)</label>
+              <label className="font-bold text-slate-700 text-xs block mb-1">Cabin Instructions / Faculty Notes</label>
               <textarea
                 rows={3}
                 value={remarkText}
                 onChange={(e) => setRemarkText(e.target.value)}
-                placeholder="e.g. Approved. Answer script reviewed and Mid-Semester marks adjusted."
+                placeholder="e.g. Slot confirmed. Please visit Cabin #204 with your notes and assignment question sheet."
                 className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs outline-none focus:bg-white"
               />
             </div>
@@ -2111,14 +2107,7 @@ function FacultyStudentUpdatesTab({
                   </button>
                 )}
 
-                {item.clearanceStatus !== 'Cleared' ? (
-                  <button
-                    onClick={() => handleConfirmBacklogClearance(item.id)}
-                    className="px-4 py-2 bg-[#13141b] text-white hover:bg-slate-800 rounded-2xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap shadow-xs"
-                  >
-                    <CheckCircle2 size={14} className="text-emerald-400" /> Confirm Clearance
-                  </button>
-                ) : (
+                {item.clearanceStatus === 'Cleared' && (
                   <button
                     onClick={() => onOpenCertificate && onOpenCertificate(item)}
                     className="px-4 py-2 bg-[#e7f6ee] text-[#166534] hover:bg-[#d8f0e2] rounded-2xl font-bold text-xs border border-[#bce8ce] flex items-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap"
@@ -2152,8 +2141,14 @@ function FacultyBacklogManagementTab({
   const [clearanceFilter, setClearanceFilter] = useState('All'); // 'All', 'In Review', 'Pending Clearance', 'Cleared'
   const [reasonFilter, setReasonFilter] = useState('All'); // 'All', 'Low Marks in End-Sem', 'Attendance Shortage', 'Missed Internal Exam'
   const [funnelStageFilter, setFunnelStageFilter] = useState(null);
-  const [selectedRecordForClearance, setSelectedRecordForClearance] = useState(null);
-  const [clearanceNote, setClearanceNote] = useState('');
+  const [expandedRowIds, setExpandedRowIds] = useState({});
+
+  const toggleRowExpansion = (id) => {
+    setExpandedRowIds((prev) => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
 
   // Extract unique subjects
   const subjectList = useMemo(() => {
@@ -2181,18 +2176,6 @@ function FacultyBacklogManagementTab({
       return matchesSearch && matchesSubject && matchesClearance && matchesReason;
     });
   }, [backlogRecords, searchTerm, subjectFilter, clearanceFilter, reasonFilter, funnelStageFilter]);
-
-  const handleOpenClearanceModal = (record) => {
-    setSelectedRecordForClearance(record);
-    setClearanceNote(`Cleared upon verifying repeat exam score and student consultation.`);
-  };
-
-  const handleExecuteClearance = () => {
-    if (!selectedRecordForClearance) return;
-    handleConfirmBacklogClearance(selectedRecordForClearance.id, clearanceNote);
-    setSelectedRecordForClearance(null);
-    setClearanceNote('');
-  };
 
   return (
     <div className="space-y-6">
@@ -2242,7 +2225,7 @@ function FacultyBacklogManagementTab({
           <div>
             <h3 className="font-extrabold text-base text-slate-900">Department Backlog Candidates</h3>
             <p className="text-xs text-slate-500">
-              Filter by subject, student, or clearance status; inspect reasons, track repeat exams, and confirm clearance.
+              Filter by subject, student, or clearance status; inspect reasons, and track repeat exams.
             </p>
           </div>
 
@@ -2330,232 +2313,186 @@ function FacultyBacklogManagementTab({
               <tr className="border-b border-slate-100 bg-[#fafafc] text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                 <th className="py-4 px-6">Student Information</th>
                 <th className="py-4 px-4">Backlog Subject</th>
-                <th className="py-4 px-4">Reason for Backlog</th>
-                <th className="py-4 px-4">Repeat Exam Progress</th>
-                <th className="py-4 px-4">Student Updates</th>
                 <th className="py-4 px-4">Clearance Status</th>
+                <th className="py-4 px-4 text-center">Backlog & Exam Details</th>
                 <th className="py-4 px-6 text-right">Faculty Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs">
               {filteredRecords.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400 text-xs">
+                  <td colSpan={5} className="py-12 text-center text-slate-400 text-xs">
                     No backlog candidates found matching the selected filter criteria.
                   </td>
                 </tr>
               ) : (
                 filteredRecords.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
-                    {/* Student Info */}
-                    <td className="py-4 px-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-[#13141b] text-white flex items-center justify-center font-bold text-xs">
-                          {item.studentName.charAt(0)}
+                  <Fragment key={item.id}>
+                    <tr className={`transition-colors ${expandedRowIds[item.id] ? 'bg-slate-50/80' : 'hover:bg-slate-50/70'}`}>
+                      {/* Student Info */}
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-[#13141b] text-white flex items-center justify-center font-bold text-xs">
+                            {item.studentName.charAt(0)}
+                          </div>
+                          <div>
+                            <span className="font-extrabold text-slate-900 block">{item.studentName}</span>
+                            <span className="text-[11px] font-mono text-slate-400">{item.usn} • {item.semester}</span>
+                          </div>
                         </div>
+                      </td>
+
+                      {/* Subject */}
+                      <td className="py-4 px-4">
                         <div>
-                          <span className="font-extrabold text-slate-900 block">{item.studentName}</span>
-                          <span className="text-[11px] font-mono text-slate-400">{item.usn} • {item.semester}</span>
+                          <span className="font-extrabold text-slate-900 block">{item.subjectName}</span>
+                          <span className="text-[11px] font-mono text-slate-400">{item.subjectCode}</span>
                         </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* Subject */}
-                    <td className="py-4 px-4">
-                      <div>
-                        <span className="font-extrabold text-slate-900 block">{item.subjectName}</span>
-                        <span className="text-[11px] font-mono text-slate-400">{item.subjectCode}</span>
-                      </div>
-                    </td>
-
-                    {/* Backlog Reason */}
-                    <td className="py-4 px-4">
-                      <div>
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold inline-block ${
-                          item.backlogReason.includes('Attendance')
-                            ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                            : 'bg-rose-50 text-rose-700 border border-rose-200'
-                        }`}>
-                          {item.backlogReason}
-                        </span>
-                        <span className="text-[10px] text-slate-400 block mt-1">
-                          Score: {item.originalMarks} / {item.maxMarks}
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* Repeat Exam Progress */}
-                    <td className="py-4 px-4">
-                      <div className="space-y-1">
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold inline-block ${
-                          item.repeatExamStatus === 'Appeared'
-                            ? 'bg-[#e7f6ee] text-[#166534]'
-                            : item.repeatExamStatus === 'Scheduled'
-                            ? 'bg-[#e0f2fe] text-[#0369a1]'
-                            : item.repeatExamStatus === 'Preparing'
-                            ? 'bg-[#fef3c7] text-[#b45309]'
-                            : 'bg-slate-100 text-slate-600'
-                        }`}>
-                          {item.repeatExamStatus}
-                        </span>
-                        <span className="text-[10px] text-slate-400 block">
-                          Result: {item.resultStatus}
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* Student Updates Status */}
-                    <td className="py-4 px-4">
-                      <div className="space-y-1 text-[11px]">
-                        <div className="flex items-center gap-1">
-                          <span className="text-slate-400">Teacher Met:</span>
-                          <strong className={item.metTeacher ? 'text-emerald-600' : 'text-amber-600'}>
-                            {item.metTeacher ? 'Yes ✓' : 'Pending'}
-                          </strong>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-slate-400">Assignments:</span>
-                          <strong className={item.assignmentsCompleted === 'Completed' ? 'text-emerald-600' : 'text-slate-600'}>
-                            {item.assignmentsCompleted}
-                          </strong>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Clearance Status */}
-                    <td className="py-4 px-4">
-                      {item.clearanceStatus === 'Cleared' ? (
-                        <div className="space-y-0.5">
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#e7f6ee] text-[#166534] border border-[#bce8ce] inline-flex items-center gap-1">
-                            <CheckCircle2 size={11} /> Cleared
-                          </span>
-                          <span className="text-[10px] text-slate-400 block font-mono">
-                            {item.facultyClearedDate || 'Oct 09, 2026'}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#fdeedc] text-[#8a4816] inline-block">
-                          {item.clearanceStatus}
-                        </span>
-                      )}
-                    </td>
-
-                    {/* Actions */}
-                    <td className="py-4 px-6 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {item.clearanceStatus !== 'Cleared' ? (
-                          <button
-                            onClick={() => handleOpenClearanceModal(item)}
-                            className="px-3 py-1.5 rounded-xl bg-[#13141b] text-white font-bold text-xs hover:bg-slate-800 transition flex items-center gap-1 cursor-pointer whitespace-nowrap"
-                          >
-                            <Check size={13} /> Confirm Clearance
-                          </button>
+                      {/* Clearance Status */}
+                      <td className="py-4 px-4">
+                        {item.clearanceStatus === 'Cleared' ? (
+                          <div className="space-y-0.5">
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#e7f6ee] text-[#166534] border border-[#bce8ce] inline-flex items-center gap-1">
+                              <CheckCircle2 size={11} /> Cleared
+                            </span>
+                            <span className="text-[10px] text-slate-400 block font-mono">
+                              {item.facultyClearedDate || 'Oct 09, 2026'}
+                            </span>
+                          </div>
                         ) : (
-                          <button
-                            onClick={() => onOpenCertificate && onOpenCertificate(item)}
-                            title="View Official University Clearance Certificate"
-                            className="px-2.5 py-1.5 rounded-xl bg-[#e7f6ee] text-[#166534] hover:bg-[#d8f0e2] border border-[#bce8ce] font-bold text-xs flex items-center gap-1 cursor-pointer whitespace-nowrap shadow-xs"
-                          >
-                            <Award size={13} /> Certificate
-                          </button>
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#fdeedc] text-[#8a4816] inline-block">
+                            {item.clearanceStatus}
+                          </span>
                         )}
+                      </td>
 
+                      {/* Dropdown Details Button */}
+                      <td className="py-4 px-4 text-center">
                         <button
-                          onClick={() => onOpenAdvice && onOpenAdvice(item)}
-                          title="Send Academic Advice / Guidance Note"
-                          className="p-1.5 rounded-xl text-[#8a4816] bg-[#fdeedc] hover:bg-[#fcd7b5] transition cursor-pointer"
+                          onClick={() => toggleRowExpansion(item.id)}
+                          className={`px-3 py-1.5 rounded-xl font-bold text-xs inline-flex items-center gap-1.5 transition cursor-pointer ${
+                            expandedRowIds[item.id]
+                              ? 'bg-slate-900 text-white shadow-xs'
+                              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                          }`}
                         >
-                          <MessageSquare size={14} />
+                          <span>{expandedRowIds[item.id] ? 'Hide Details' : 'Details'}</span>
+                          {expandedRowIds[item.id] ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                         </button>
+                      </td>
 
-                        <button
-                          onClick={() => onNavigate('Student Updates')}
-                          title="View Student Remarks & Progress"
-                          className="p-1.5 rounded-xl text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition cursor-pointer"
-                        >
-                          <Eye size={15} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                      {/* Actions */}
+                      <td className="py-4 px-6 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          {item.clearanceStatus === 'Cleared' && (
+                            <button
+                              onClick={() => onOpenCertificate && onOpenCertificate(item)}
+                              title="View Official University Clearance Certificate"
+                              className="px-2.5 py-1.5 rounded-xl bg-[#e7f6ee] text-[#166534] hover:bg-[#d8f0e2] border border-[#bce8ce] font-bold text-xs flex items-center gap-1 cursor-pointer whitespace-nowrap shadow-xs"
+                            >
+                              <Award size={13} /> Certificate
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => onOpenAdvice && onOpenAdvice(item)}
+                            title="Send Academic Advice / Guidance Note"
+                            className="p-1.5 rounded-xl text-[#8a4816] bg-[#fdeedc] hover:bg-[#fcd7b5] transition cursor-pointer"
+                          >
+                            <MessageSquare size={14} />
+                          </button>
+
+                          <button
+                            onClick={() => onNavigate('Student Updates')}
+                            title="View Student Remarks & Progress"
+                            className="p-1.5 rounded-xl text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition cursor-pointer"
+                          >
+                            <Eye size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    {/* Expandable Details Drawer */}
+                    {expandedRowIds[item.id] && (
+                      <tr className="bg-slate-50/80 border-b border-slate-100">
+                        <td colSpan={5} className="py-3 px-6">
+                          <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                            {/* 1. Reason for Backlog */}
+                            <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-100">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                                Reason for Backlog
+                              </span>
+                              <div className="space-y-1">
+                                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold inline-block ${
+                                  item.backlogReason.includes('Attendance')
+                                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                    : 'bg-rose-50 text-rose-700 border border-rose-200'
+                                }`}>
+                                  {item.backlogReason}
+                                </span>
+                                <div className="text-[11px] text-slate-500 font-mono mt-1">
+                                  Initial Score: <strong className="text-slate-800">{item.originalMarks} / {item.maxMarks}</strong>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* 2. Repeat Exam Progress */}
+                            <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-100">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                                Repeat Exam Progress
+                              </span>
+                              <div className="space-y-1">
+                                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold inline-block ${
+                                  item.repeatExamStatus === 'Appeared'
+                                    ? 'bg-[#e7f6ee] text-[#166534]'
+                                    : item.repeatExamStatus === 'Scheduled'
+                                    ? 'bg-[#e0f2fe] text-[#0369a1]'
+                                    : item.repeatExamStatus === 'Preparing'
+                                    ? 'bg-[#fef3c7] text-[#b45309]'
+                                    : 'bg-slate-100 text-slate-600'
+                                }`}>
+                                  {item.repeatExamStatus}
+                                </span>
+                                <div className="text-[11px] text-slate-500 mt-1">
+                                  Result: <strong className="text-slate-800">{item.resultStatus}</strong>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* 3. Student Updates */}
+                            <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-100">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                                Student Updates
+                              </span>
+                              <div className="space-y-1.5 text-xs">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-slate-500">Teacher Met:</span>
+                                  <strong className={item.metTeacher ? 'text-emerald-600' : 'text-amber-600'}>
+                                    {item.metTeacher ? 'Yes ✓' : 'Pending'}
+                                  </strong>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-slate-500">Assignments:</span>
+                                  <strong className={item.assignmentsCompleted === 'Completed' ? 'text-emerald-600' : 'text-slate-600'}>
+                                    {item.assignmentsCompleted}
+                                  </strong>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 ))
               )}
             </tbody>
           </table>
         </div>
       </div>
-
-      {/* Confirmation Modal: Confirm Backlog Clearance */}
-      {selectedRecordForClearance && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-[#e7f6ee] text-[#166534] flex items-center justify-center font-bold">
-                  <CheckCircle2 size={20} />
-                </div>
-                <div>
-                  <h4 className="font-extrabold text-sm text-slate-900">Confirm Backlog Clearance</h4>
-                  <p className="text-[11px] text-slate-500">Official sign-off for academic clearance certificate</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setSelectedRecordForClearance(null)}
-                className="text-slate-400 hover:text-slate-700 cursor-pointer"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs bg-slate-50 p-4 rounded-2xl">
-              <div className="flex justify-between">
-                <span className="text-slate-500 font-medium">Student Name:</span>
-                <strong className="text-slate-900">{selectedRecordForClearance.studentName} ({selectedRecordForClearance.usn})</strong>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500 font-medium">Subject:</span>
-                <strong className="text-slate-900">{selectedRecordForClearance.subjectCode} - {selectedRecordForClearance.subjectName}</strong>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500 font-medium">Backlog Reason:</span>
-                <strong className="text-amber-700">{selectedRecordForClearance.backlogReason}</strong>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500 font-medium">Repeat Exam Status:</span>
-                <strong className="text-blue-700">{selectedRecordForClearance.repeatExamStatus}</strong>
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                Faculty Verification Note / Endorsement:
-              </label>
-              <textarea
-                rows={3}
-                value={clearanceNote}
-                onChange={(e) => setClearanceNote(e.target.value)}
-                placeholder="Enter verification notes for the exam cell..."
-                className="w-full p-3 rounded-2xl bg-[#f6f7fa] border border-slate-200 text-xs text-slate-900 outline-none focus:bg-white focus:border-slate-400"
-              />
-            </div>
-
-            <div className="pt-2 flex items-center justify-end gap-3">
-              <button
-                onClick={() => setSelectedRecordForClearance(null)}
-                className="px-4 py-2.5 rounded-xl text-slate-600 font-bold text-xs hover:bg-slate-100 transition cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleExecuteClearance}
-                className="px-5 py-2.5 rounded-xl bg-[#166534] hover:bg-[#13572d] text-white font-bold text-xs transition flex items-center gap-1.5 shadow-md cursor-pointer"
-              >
-                <CheckCircle2 size={15} /> Confirm & Mark Cleared
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

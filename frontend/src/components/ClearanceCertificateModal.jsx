@@ -110,7 +110,7 @@ export default function ClearanceCertificateModal({ record, onClose }) {
             </div>
 
             <p className="text-xs text-slate-600 italic">
-              &quot;The student has met with the designated subject faculty, completed all prescriptive laboratory and theoretical assignment components, appeared for the university re-evaluation / repeat examination, and satisfied the academic standing criteria for clearance.&quot;
+              &quot;The student has met with the designated subject faculty, completed all prescriptive laboratory and theoretical assignment components, appeared for the university repeat examination, and satisfied the academic standing criteria for clearance.&quot;
             </p>
           </div>
 
