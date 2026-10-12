@@ -12,6 +12,7 @@ import {
   Menu,
   Sparkles,
   ChevronRight,
+  ChevronDown,
   GraduationCap,
   FileCheck,
   KeyRound,
@@ -999,99 +1000,107 @@ function StudentSubjectsTab({ subjects, triggerToast }) {
   }, [subjects, semesterFilter]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      {/* Header with Semester Dropdown Filter */}
       <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-[0_6px_20px_rgba(0,0,0,0.02)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h3 className="font-extrabold text-base text-slate-900">Enrolled Semester Syllabus & Exams</h3>
+          <h3 className="font-extrabold text-base text-slate-900 tracking-tight">Enrolled Semester Syllabus & Exams</h3>
           <p className="text-xs text-slate-500">Track Mid-Semester and End-Semester assessments by semester cycle</p>
         </div>
-        <div className="flex items-center gap-1.5 p-1 bg-[#f6f7fa] rounded-2xl flex-wrap">
-          <button
-            onClick={() => setSemesterFilter('All')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${semesterFilter === 'All' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'}`}
-          >
-            All Semesters ({subjects.length})
-          </button>
-          <button
-            onClick={() => setSemesterFilter('Odd')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${semesterFilter === 'Odd' ? 'bg-[#fdeedc] text-[#8a4816] shadow-xs' : 'text-slate-500 hover:text-slate-900'}`}
-          >
-            Odd Semesters (Sem 1, 3, 5, 7)
-          </button>
-          <button
-            onClick={() => setSemesterFilter('Even')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${semesterFilter === 'Even' ? 'bg-[#e9f2fc] text-[#1e40af] shadow-xs' : 'text-slate-500 hover:text-slate-900'}`}
-          >
-            Even Semesters (Sem 2, 4, 6, 8)
-          </button>
+
+        {/* Dropdown for Even and Odd Semester */}
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-bold text-slate-500 flex items-center gap-1.5 shrink-0">
+            <Filter size={14} className="text-slate-400" />
+            Semester Cycle:
+          </label>
+          <div className="relative">
+            <select
+              value={semesterFilter}
+              onChange={(e) => setSemesterFilter(e.target.value)}
+              className="appearance-none pl-3.5 pr-9 py-2 rounded-2xl bg-[#f6f7fa] border border-slate-200 text-xs font-bold text-slate-800 outline-none cursor-pointer focus:bg-white focus:border-slate-400 transition shadow-xs"
+            >
+              <option value="All">All Semesters ({subjects.length})</option>
+              <option value="Odd">Odd Semesters (Sem 1, 3, 5, 7)</option>
+              <option value="Even">Even Semesters (Sem 2, 4, 6, 8)</option>
+            </select>
+            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {filteredSubjects.map((sub, i) => (
-          <div
-            key={sub.code}
-            className={`
-              p-6 rounded-3xl border shadow-xs hover:shadow-md transition-all flex flex-col justify-between
-              ${i % 2 === 0 ? 'bg-white border-slate-100' : 'bg-white border-slate-100'}
-            `}
-          >
-            <div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="font-black text-sm text-slate-900">{sub.code}</span>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${sub.semesterType === 'Odd' ? 'bg-[#fdeedc] text-[#8a4816]' : 'bg-[#e9f2fc] text-[#1e40af]'}`}>
+      {/* Subjects in Vertical Rows (One full row per subject instead of grid boxes) */}
+      <div className="space-y-3.5">
+        {filteredSubjects.length === 0 ? (
+          <div className="p-8 text-center text-xs text-slate-400 bg-white rounded-3xl border border-slate-100">
+            No subjects found for the selected semester cycle.
+          </div>
+        ) : (
+          filteredSubjects.map((sub) => (
+            <div
+              key={sub.code}
+              className="bg-white rounded-2xl p-5 border border-slate-100 shadow-[0_4px_16px_rgb(0,0,0,0.02)] hover:border-slate-200 hover:shadow-xs transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-4"
+            >
+              {/* Left Section: Subject Code, Name, Semester, Faculty */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                  <span className="font-black text-sm text-slate-900 tracking-tight">{sub.code}</span>
+                  <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${sub.semesterType === 'Odd' ? 'bg-[#fdeedc] text-[#8a4816]' : 'bg-[#e9f2fc] text-[#1e40af]'}`}>
                     {sub.semester} ({sub.semesterType} Semester)
                   </span>
+                  {sub.type && (
+                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                      {sub.type}
+                    </span>
+                  )}
                 </div>
-                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700">
-                  {sub.credits} Credits • {sub.type}
-                </span>
+                <h4 className="text-base font-extrabold text-slate-900 tracking-tight truncate">{sub.name}</h4>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Faculty In-charge: <strong className="text-slate-700">{sub.faculty}</strong>
+                </p>
               </div>
-              <h4 className="text-base font-extrabold text-slate-900 mt-2">{sub.name}</h4>
-              <p className="text-xs text-slate-500 mt-0.5">Faculty In-charge: <strong>{sub.faculty}</strong></p>
 
-              {/* Mid-Semester & End-Semester Exam Grid */}
-              <div className="mt-4 pt-3 border-t border-slate-100 grid grid-cols-2 gap-3 text-xs">
-                <div className="p-3.5 bg-[#f6f7fa] rounded-2xl border border-slate-100">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-slate-400 font-bold block uppercase">MID-SEMESTER EXAM</span>
+              {/* Middle Section: Mid-Sem and End-Sem Assessment Scores */}
+              <div className="flex items-center gap-3 sm:gap-4 shrink-0 flex-wrap">
+                <div className="px-3.5 py-2.5 rounded-2xl bg-[#f6f7fa] border border-slate-100 min-w-[135px]">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Mid-Sem</span>
                     <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md">Passed</span>
                   </div>
                   <div className="mt-1 flex items-baseline gap-1">
-                    <span className="font-black text-slate-900 text-base">{sub.midsemMarks}</span>
+                    <span className="font-black text-slate-900 text-sm">{sub.midsemMarks}</span>
                     <span className="text-slate-400 text-xs">/ {sub.midsemMax || 50} Marks</span>
                   </div>
-                  <p className="text-[10px] text-slate-500 mt-1">{sub.midsemStatus || 'Evaluated'}</p>
                 </div>
 
-                <div className="p-3.5 bg-[#fbf9fe] rounded-2xl border border-[#f1e5fa]">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-[#6b21a8] font-bold block uppercase">END-SEMESTER EXAM</span>
+                <div className="px-3.5 py-2.5 rounded-2xl bg-[#fbf9fe] border border-[#f1e5fa] min-w-[135px]">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-bold text-[#6b21a8] uppercase tracking-wider">End-Sem</span>
                     <span className="text-[10px] font-bold text-[#1e40af] bg-blue-50 px-1.5 py-0.5 rounded-md">Eligible</span>
                   </div>
                   <div className="mt-1 flex items-baseline gap-1">
-                    <span className="font-black text-slate-900 text-base">{sub.endsemMarks || 85}</span>
+                    <span className="font-black text-slate-900 text-sm">{sub.endsemMarks || 85}</span>
                     <span className="text-slate-400 text-xs">/ {sub.endsemMax || 100} Marks</span>
                   </div>
-                  <p className="text-[10px] text-slate-500 mt-1">{sub.endsemStatus || 'Hall Ticket Issued'}</p>
                 </div>
               </div>
-            </div>
 
-            <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-              <span className="font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full text-[10px]">
-                {sub.status}
-              </span>
-              <button
-                onClick={() => triggerToast(`Syllabus and exam notes downloaded for ${sub.code}!`)}
-                className="flex items-center gap-1 font-bold text-slate-700 hover:text-slate-900 cursor-pointer"
-              >
-                <Download size={13} /> Syllabus & Model Papers
-              </button>
+              {/* Right Section: Status & Syllabus Download Action */}
+              <div className="flex items-center justify-between lg:justify-end gap-3 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100 shrink-0">
+                <span className="font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-xl text-xs whitespace-nowrap">
+                  {sub.status || 'Eligible for End-Sem Exam'}
+                </span>
+                <button
+                  onClick={() => triggerToast(`Syllabus and exam notes downloaded for ${sub.code}!`)}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-[#f6f7fa] text-slate-700 hover:bg-slate-200 hover:text-slate-900 transition cursor-pointer whitespace-nowrap shadow-xs"
+                  title="Download Syllabus & Model Papers"
+                >
+                  <Download size={13} /> Syllabus & Notes
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );
