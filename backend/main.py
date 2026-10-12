@@ -1,11 +1,16 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.models.database import engine, Base
+from app.api.v1 import api_v1_router
 
 # Create tables if not exist
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="BackTrack API")
+app = FastAPI(
+    title="BackTrack Academic Backlog Management API",
+    description="Enterprise REST API for university academic backlog tracking, clearance audits, and digital certificates.",
+    version="1.0.0"
+)
 
 # Configure CORS for React frontend
 app.add_middleware(
@@ -16,6 +21,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount API V1 namespace
+app.include_router(api_v1_router)
+
 @app.get("/")
 def read_root():
-    return {"message": "Welcome to BackTrack REST API"}
+    return {
+        "system": "BackTrack Academic Backlog Management API",
+        "version": "1.0.0",
+        "status": "operational",
+        "docs_url": "/docs"
+    }

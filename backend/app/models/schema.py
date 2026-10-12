@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Text, Table
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Text, Table, Float
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from .database import Base
@@ -98,6 +98,9 @@ class StudentSubject(Base):
     student_id = Column(Integer, ForeignKey("students.id"))
     subject_id = Column(Integer, ForeignKey("subjects.id"))
     status = Column(String, default="Passed") # Passed, Failed, Backlog, Cleared
+    internal_marks = Column(Integer, default=0)
+    external_marks = Column(Integer, default=0)
+    attendance_percentage = Column(Float, default=85.0)
     
     student = relationship("Student", back_populates="enrolled_subjects")
     subject = relationship("Subject", back_populates="enrolled_students")
@@ -111,7 +114,9 @@ class Backlog(Base):
     session_id = Column(Integer, ForeignKey("academic_sessions.id"), nullable=True)
     attempt_number = Column(Integer, default=1)
     status = Column(String, default="Pending Verification") 
+    reason = Column(String, nullable=True)
     exam_date = Column(DateTime, nullable=True)
+    cleared_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     
     student = relationship("Student", back_populates="backlogs")
