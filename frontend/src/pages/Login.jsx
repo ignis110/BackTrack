@@ -161,14 +161,32 @@ export default function Login() {
             </div>
           </form>
 
-          {role === 'student' && (
-            <div className="mt-6 text-center text-sm text-slate-600">
-              New student?{' '}
-              <Link to="/register" className="font-semibold text-indigo-600 hover:text-indigo-500">
-                Create an account
-              </Link>
-            </div>
-          )}
+          <div className="mt-6 text-center text-sm text-slate-600">
+            {role === 'student' && (
+              <>
+                New student?{' '}
+                <Link to="/register?role=student" className="font-semibold text-indigo-600 hover:text-indigo-500">
+                  Create an account
+                </Link>
+              </>
+            )}
+            {role === 'faculty' && (
+              <>
+                New faculty member?{' '}
+                <Link to="/register?role=faculty" className="font-semibold text-indigo-600 hover:text-indigo-500">
+                  Create an account
+                </Link>
+              </>
+            )}
+            {role === 'admin' && (
+              <>
+                New administrator?{' '}
+                <Link to="/register?role=admin" className="font-semibold text-indigo-600 hover:text-indigo-500">
+                  Create an account
+                </Link>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
