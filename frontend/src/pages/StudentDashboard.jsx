@@ -793,73 +793,40 @@ function SidebarBtn({ icon, label, active, badge, onClick }) {
 function StudentDashboardTab({ profile, subjects, requests, backlogRecords = [], onNavigate, openApplyModal }) {
   return (
     <div className="space-y-6">
-      {/* Welcome Banner & Obsidian Progress Card */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white rounded-3xl p-6 lg:p-7 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.03)] relative overflow-hidden flex flex-col justify-between">
-          <div className="relative z-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#fdeedc] text-[#8a4816] text-xs font-semibold mb-3">
-              <Sparkles size={13} /> Academic Status: Good Standing
-            </div>
-            <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-              Welcome back, {profile.name}
-            </h3>
-            <p className="text-xs text-slate-500 mt-1 max-w-lg leading-relaxed">
-              You are currently enrolled in <strong>{subjects.length} course subjects</strong> for {profile.semester}. 
-              Your faculty advisor is <strong>{profile.advisor}</strong>. Keep up your continuous evaluation marks!
-            </p>
+      {/* Welcome Banner */}
+      <div className="w-full bg-white rounded-3xl p-6 lg:p-7 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.03)] relative overflow-hidden flex flex-col justify-between">
+        <div className="relative z-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#fdeedc] text-[#8a4816] text-xs font-semibold mb-3">
+            <Sparkles size={13} /> Academic Status: Good Standing
           </div>
-
-          <div className="mt-6 pt-5 border-t border-slate-100 flex flex-wrap items-center gap-4 relative z-10">
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-700 bg-[#f6f7fa] px-3.5 py-2 rounded-xl font-mono">
-              USN: {profile.usn} • {profile.section}
-            </div>
-            <button
-              onClick={() => onNavigate('My Subjects')}
-              className="text-xs font-bold text-[#13141b] bg-[#f4e8fd] hover:bg-[#eccffc] px-4 py-2 rounded-xl transition flex items-center gap-1.5"
-            >
-              My Subjects ({subjects.length}) <ChevronRight size={14} />
-            </button>
-            <button
-              onClick={openApplyModal}
-              className="text-xs font-bold text-[#13141b] bg-[#e7f6ee] hover:bg-[#d8f0e2] px-4 py-2 rounded-xl transition flex items-center gap-1.5"
-            >
-              Submit Petition <ChevronRight size={14} />
-            </button>
-          </div>
-
-          <div className="absolute right-[-40px] top-[-40px] w-64 h-64 rounded-full bg-gradient-to-br from-[#fdeedc]/60 to-[#f4e8fd]/60 blur-2xl pointer-events-none" />
+          <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+            Welcome back, {profile.name}
+          </h3>
+          <p className="text-xs text-slate-500 mt-1 max-w-xl leading-relaxed">
+            You are currently enrolled in <strong>{subjects.length} course subjects</strong> for {profile.semester}. 
+            Your faculty advisor is <strong>{profile.advisor}</strong>. Keep up your continuous evaluation marks!
+          </p>
         </div>
 
-        {/* Dark Obsidian Degree Credit Progression Card */}
-        <div className="bg-[#14151b] text-white rounded-3xl p-6 shadow-xl flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Degree Completion</span>
-              <span className="text-[10px] bg-white/10 text-[#f5caa0] px-2.5 py-0.5 rounded-full font-bold">BCA Program</span>
-            </div>
-            <div className="mt-4 flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold tracking-tight text-white">{profile.creditsEarned}</span>
-              <span className="text-xs font-bold text-slate-400">/ {profile.totalCredits} Credits</span>
-            </div>
-            <p className="text-[11px] text-slate-400 mt-1">
-              On track for Spring 2027 graduation with zero active academic penalties.
-            </p>
+        <div className="mt-6 pt-5 border-t border-slate-100 flex flex-wrap items-center gap-4 relative z-10">
+          <div className="flex items-center gap-2 text-xs font-bold text-slate-700 bg-[#f6f7fa] px-3.5 py-2 rounded-xl font-mono">
+            USN: {profile.usn} • {profile.section}
           </div>
-
-          <div className="mt-6 space-y-2">
-            <div className="flex justify-between text-[11px] font-medium text-slate-400">
-              <span>Overall Progress</span>
-              <span className="text-[#f5caa0] font-bold">37% Completed</span>
-            </div>
-            <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden flex">
-              <div className="h-full bg-[#f5caa0] rounded-full" style={{ width: '37%' }}></div>
-            </div>
-            <div className="flex items-center justify-between pt-2 text-[10px] text-slate-400">
-              <span>Mid-Term IA: <strong className="text-white">Oct 19</strong></span>
-              <span>Semester Exams: <strong className="text-white">Dec 14</strong></span>
-            </div>
-          </div>
+          <button
+            onClick={() => onNavigate('My Subjects')}
+            className="text-xs font-bold text-[#13141b] bg-[#f4e8fd] hover:bg-[#eccffc] px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+          >
+            My Subjects ({subjects.length}) <ChevronRight size={14} />
+          </button>
+          <button
+            onClick={openApplyModal}
+            className="text-xs font-bold text-[#13141b] bg-[#e7f6ee] hover:bg-[#d8f0e2] px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+          >
+            Submit Petition <ChevronRight size={14} />
+          </button>
         </div>
+
+        <div className="absolute right-[-40px] top-[-40px] w-64 h-64 rounded-full bg-gradient-to-br from-[#fdeedc]/60 to-[#f4e8fd]/60 blur-2xl pointer-events-none" />
       </div>
 
       {/* 4 Pastel Stat Cards */}
