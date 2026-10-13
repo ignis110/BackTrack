@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { GraduationCap, ArrowLeft, Lock, UserCircle, AlertCircle, ShieldCheck } from 'lucide-react';
-import { getAdminCredentials, DEFAULT_ADMIN_CREDENTIALS, isStudentIdentifier } from '../utils/backlogStore';
+import { GraduationCap, ArrowLeft, Lock, UserCircle, AlertCircle } from 'lucide-react';
+import {
+  authenticateStudent,
+  authenticateFaculty,
+  authenticateAdmin
+} from '../utils/backlogStore';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -30,161 +34,57 @@ export default function Login() {
     e.preventDefault();
     setErrorMessage('');
     const cleanInput = username.trim();
+    const cleanPass = password.trim();
+
     if (!cleanInput) {
-      setErrorMessage('Please enter your username.');
+      setErrorMessage(
+        `Please enter your ${
+          role === 'student'
+            ? 'student USN or username'
+            : role === 'faculty'
+            ? 'faculty Employee ID or username'
+            : 'administrator username'
+        }.`
+      );
+      return;
+    }
+    if (!cleanPass) {
+      setErrorMessage('Please enter your password.');
       return;
     }
 
-    const inputUser = cleanInput.toLowerCase();
-    const inputPass = password.trim();
-
-    // STRICT ROLE CONTROL 1: STUDENT ID CANNOT ACCESS ADMIN PANEL
     if (role === 'admin') {
-      if (isStudentIdentifier(cleanInput)) {
-        setErrorMessage('Access Denied: Student account detected. Student IDs cannot access the Administrator panel. Please switch to the Student login portal.');
+      const res = authenticateAdmin(cleanInput, cleanPass);
+      if (!res.success) {
+        setErrorMessage(res.error);
         return;
       }
-
-      const adminCreds = getAdminCredentials();
-
-      const isUserMatch =
-        inputUser === (adminCreds.username || 'admin').toLowerCase() ||
-        inputUser === 'admin' ||
-        inputUser === (adminCreds.email || '').toLowerCase() ||
-        inputUser === (adminCreds.id || '').toLowerCase();
-
-      const isPassMatch = inputPass === (adminCreds.password || 'admin123');
-
-      // Also check against users table if any Admin was registered
-      let matchedAdminInStore = null;
-      try {
-        const allUsers = JSON.parse(localStorage.getItem('backtrack_users') || '[]');
-        matchedAdminInStore = allUsers.find(
-          (u) =>
-            (u.role?.toLowerCase() === 'admin' || u.role?.toLowerCase() === 'administrator') &&
-            (u.username?.toLowerCase() === inputUser ||
-              u.email?.toLowerCase() === inputUser ||
-              u.id?.toLowerCase() === inputUser) &&
-            (!u.password || u.password === inputPass)
-        );
-      } catch {}
-
-      if ((!isUserMatch || !isPassMatch) && !matchedAdminInStore) {
-        setErrorMessage('Access Denied: Invalid administrator credentials. Only authorized university administrators may sign in.');
-        return;
-      }
-
-      // Valid admin login!
-      const adminSession = {
-        username: matchedAdminInStore?.username || adminCreds.username || 'admin',
-        name: matchedAdminInStore?.name || adminCreds.name || 'Exam Controller',
-        id: matchedAdminInStore?.id || adminCreds.id || 'ADM-001',
-        role: 'admin',
-        email: matchedAdminInStore?.email || adminCreds.email || 'admin@univ.edu',
-        department: matchedAdminInStore?.department || adminCreds.department || 'Office of Academic Affairs & Examination Cell',
-        designation: adminCreds.designation || 'Chief Academic Controller & Administrator',
-        loginTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-
-      localStorage.setItem('currentUser', JSON.stringify(adminSession));
+      localStorage.setItem('currentUser', JSON.stringify(res.session));
       navigate('/admin');
       return;
     }
 
-    // STRICT ROLE CONTROL 2: STUDENT ID CANNOT ACCESS FACULTY PANEL
     if (role === 'faculty') {
-      if (isStudentIdentifier(cleanInput)) {
-        setErrorMessage('Access Denied: Student account detected. Student IDs cannot access the Faculty panel. Please switch to the Student login portal.');
+      const res = authenticateFaculty(cleanInput, cleanPass);
+      if (!res.success) {
+        setErrorMessage(res.error);
         return;
       }
-
-      if (inputUser === 'admin' || inputUser === 'adm-001') {
-        setErrorMessage('Administrator credentials cannot be used to log into the Faculty portal.');
-        return;
-      }
-
-      // Check registered users table: if user exists and has role 'student', block access
-      try {
-        const allUsers = JSON.parse(localStorage.getItem('backtrack_users') || '[]');
-        const matched = allUsers.find(
-          (u) =>
-            u.username?.toLowerCase() === inputUser ||
-            u.email?.toLowerCase() === inputUser ||
-            u.id?.toLowerCase() === inputUser
-        );
-        if (matched && matched.role?.toLowerCase() === 'student') {
-          setErrorMessage('Access Denied: Student account detected. Student IDs cannot access the Faculty panel.');
-          return;
-        }
-      } catch {}
+      localStorage.setItem('currentUser', JSON.stringify(res.session));
+      navigate('/faculty');
+      return;
     }
 
-    // STRICT ROLE CONTROL 3: ADMIN CANNOT LOG IN AS STUDENT
     if (role === 'student') {
-      if (inputUser === 'admin' || inputUser === 'adm-001') {
-        setErrorMessage('Administrator credentials cannot be used to log into the Student portal. Please switch to Admin login.');
+      const res = authenticateStudent(cleanInput, cleanPass);
+      if (!res.success) {
+        setErrorMessage(res.error);
         return;
       }
+      localStorage.setItem('currentUser', JSON.stringify(res.session));
+      navigate('/student');
+      return;
     }
-
-    // Check if user exists in registered users or students/teachers store
-    let matchedUser = null;
-    try {
-      const allUsers = JSON.parse(localStorage.getItem('backtrack_users') || '[]');
-      matchedUser = allUsers.find(
-        (u) =>
-          u.username?.toLowerCase() === inputUser ||
-          u.email?.toLowerCase() === inputUser ||
-          u.id?.toLowerCase() === inputUser
-      );
-    } catch {}
-
-    let matchedRoleRecord = null;
-    if (role === 'student') {
-      try {
-        const students = JSON.parse(localStorage.getItem('backtrack_students') || '[]');
-        matchedRoleRecord = students.find(
-          (s) =>
-            s.usn?.toLowerCase() === inputUser ||
-            s.name?.toLowerCase() === inputUser ||
-            s.email?.toLowerCase() === inputUser
-        );
-      } catch {}
-    } else if (role === 'faculty') {
-      try {
-        const teachers = JSON.parse(localStorage.getItem('backtrack_teachers') || '[]');
-        matchedRoleRecord = teachers.find(
-          (t) =>
-            t.empId?.toLowerCase() === inputUser ||
-            t.name?.toLowerCase() === inputUser ||
-            t.email?.toLowerCase() === inputUser
-        );
-      } catch {}
-    }
-
-    const displayName = matchedRoleRecord?.name || matchedUser?.name || cleanInput.charAt(0).toUpperCase() + cleanInput.slice(1);
-    const displayId = matchedRoleRecord?.usn || matchedRoleRecord?.empId || matchedRoleRecord?.id || matchedUser?.id || cleanInput.toUpperCase();
-    const cleanEmail = matchedRoleRecord?.email || matchedUser?.email || (cleanInput.includes('@') ? cleanInput.toLowerCase() : `${cleanInput.toLowerCase()}@${role === 'student' ? 'student.' : ''}univ.edu`);
-
-    const userSession = {
-      username: cleanInput,
-      name: displayName,
-      id: displayId,
-      usn: displayId,
-      empId: displayId,
-      role: role,
-      email: cleanEmail,
-      course: matchedRoleRecord?.course,
-      semester: matchedRoleRecord?.semester,
-      department: matchedRoleRecord?.department,
-      designation: matchedRoleRecord?.designation,
-      loginTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-
-    localStorage.setItem('currentUser', JSON.stringify(userSession));
-
-    if (role === 'student') navigate('/student');
-    else if (role === 'faculty') navigate('/faculty');
   };
 
   return (
@@ -243,7 +143,9 @@ export default function Login() {
 
           <form className="space-y-6" onSubmit={handleLogin}>
             <div>
-              <label className="block text-sm font-medium text-slate-700">Username</label>
+              <label className="block text-sm font-medium text-slate-700">
+                {role === 'student' ? 'Student USN / Username' : role === 'faculty' ? 'Faculty Employee ID / Username' : 'Administrator Username'}
+              </label>
               <div className="mt-1 relative rounded-md shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <UserCircle className="h-5 w-5 text-slate-400" />
@@ -254,7 +156,13 @@ export default function Login() {
                   value={username}
                   onChange={(e) => { setUsername(e.target.value); setErrorMessage(''); }}
                   className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50 transition"
-                  placeholder={role === 'admin' ? 'Enter admin username (e.g. admin)' : `Enter your ${role} username`}
+                  placeholder={
+                    role === 'admin'
+                      ? 'Enter admin username (e.g. admin)'
+                      : role === 'student'
+                      ? 'Enter your USN or username (e.g. 24215107 or anirudh)'
+                      : 'Enter Employee ID or username (e.g. FAC-2024-BCA or faculty)'
+                  }
                 />
               </div>
             </div>

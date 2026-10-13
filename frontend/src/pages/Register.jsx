@@ -13,7 +13,7 @@ import {
   Lock,
   Sparkles
 } from 'lucide-react';
-import { addUser, addStudent, addTeacher, isStudentIdentifier, getCurriculumSubjectsForYearAndSem } from '../utils/backlogStore';
+import { addUser, addStudent, addTeacher, isStudentIdentifier, isFacultyIdentifier, getCurriculumSubjectsForYearAndSem } from '../utils/backlogStore';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -123,14 +123,20 @@ export default function Register() {
     const cleanId = formData.idNumber.trim();
     const cleanEmail = formData.email.trim() || `${formData.username.trim() || cleanId.toLowerCase()}@${role === 'student' ? 'student.' : ''}univ.edu`;
     const cleanUsername = formData.username.trim() || cleanId;
+    const cleanPassword = (formData.password || '').trim();
 
-    if (!cleanName || !cleanId || !cleanUsername) {
-      setToast('Please fill in all required fields.');
+    if (!cleanName || !cleanId || !cleanUsername || !cleanPassword) {
+      setToast('Please fill in all required fields including password.');
       return;
     }
 
     if (role !== 'student' && isStudentIdentifier(cleanId)) {
       setToast('Access Denied: Student ID cannot be registered for Faculty or Administrator role.');
+      return;
+    }
+
+    if (role === 'student' && (isFacultyIdentifier(cleanId) || isFacultyIdentifier(cleanEmail) || isFacultyIdentifier(cleanUsername))) {
+      setToast('Access Denied: This ID or email is registered to a Faculty account. Please use unique student credentials.');
       return;
     }
 
@@ -166,17 +172,20 @@ export default function Register() {
       name: cleanName,
       username: cleanUsername,
       email: cleanEmail,
+      password: cleanPassword,
       role: role.charAt(0).toUpperCase() + role.slice(1),
       department: formData.departmentCourse,
       status: 'Active'
     });
 
-    // If student, add to students store with auto-enrolled subjects
+    // If student, add to students store with auto-enrolled subjects and password
     if (role === 'student') {
       addStudent({
         id: `STU-${cleanId}`,
         name: cleanName,
         usn: cleanId,
+        username: cleanUsername,
+        password: cleanPassword,
         course: formData.departmentCourse,
         academicYear: formData.academicYear,
         semester: formData.levelDesignation,
@@ -193,12 +202,14 @@ export default function Register() {
       });
     }
 
-    // If faculty, add to teachers store
+    // If faculty, add to teachers store with password
     if (role === 'faculty') {
       addTeacher({
         id: `TCH-${cleanId}`,
         name: cleanName,
         empId: cleanId,
+        username: cleanUsername,
+        password: cleanPassword,
         email: cleanEmail,
         department: formData.departmentCourse,
         designation: formData.levelDesignation,

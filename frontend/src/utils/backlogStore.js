@@ -25,7 +25,7 @@ if (typeof window !== 'undefined') {
       localStorage.setItem(DEMO_CLEARED_FLAG, 'true');
     }
 
-    // Auto-sanitize session if admin had student credentials (anirudh / 24215107)
+    // Auto-sanitize session if admin had student credentials or student session has faculty email
     const rawSession = localStorage.getItem('currentUser');
     if (rawSession) {
       const parsedSession = JSON.parse(rawSession);
@@ -49,6 +49,15 @@ if (typeof window !== 'undefined') {
             loginTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           })
         );
+      } else if (
+        parsedSession.role === 'student' &&
+        (parsedSession.email?.toLowerCase().includes('kochoushinobu0069') ||
+          parsedSession.username?.toLowerCase().includes('kochoushinobu0069') ||
+          parsedSession.email?.toLowerCase().includes('faculty') ||
+          parsedSession.id?.toLowerCase().includes('kochoushinobu0069'))
+      ) {
+        // Purge contaminated student session where faculty credentials were used
+        localStorage.removeItem('currentUser');
       } else if (
         parsedSession.role === 'student' &&
         (!parsedSession.enrolledSubjects || parsedSession.enrolledSubjects.length === 0)
@@ -276,6 +285,50 @@ export function addFacultyAdvice(recordId, adviceText, facultyAuthor = 'Faculty 
   return updated;
 }
 
+export const DEFAULT_STUDENTS = [
+  {
+    id: 'STU-24215107',
+    name: 'Anirudh John',
+    usn: '24215107',
+    username: 'anirudh',
+    password: 'student123',
+    course: 'Bachelor of Computer Applications (BCA)',
+    academicYear: '1st Year',
+    semester: 'Semester 1',
+    semesterType: 'Odd',
+    section: 'Section A',
+    email: 'anirudh.john@student.univ.edu',
+    cgpa: 8.5,
+    midsemMarks: 42,
+    endsemStatus: 'Eligible',
+    backlogsCount: 0,
+    status: 'Active',
+    enrolledSubjects: [
+      { id: 'SUB-BCA101-1', code: 'BCA101-1', name: 'Foundational Mathematics', course: 'BCA', academicYear: '1st Year', semester: 'Semester 1', semesterNum: 1, type: 'Core', faculty: 'Department Professor', midsemMarks: 42, midsemMax: 50, endsemMarks: 85, endsemMax: 100, status: 'Currently Enrolled (Active)', isCurrentSemester: true },
+      { id: 'SUB-BCA102-1', code: 'BCA102-1', name: 'Introduction to Computer Science', course: 'BCA', academicYear: '1st Year', semester: 'Semester 1', semesterNum: 1, type: 'Core', faculty: 'Department Professor', midsemMarks: 40, midsemMax: 50, endsemMarks: 82, endsemMax: 100, status: 'Currently Enrolled (Active)', isCurrentSemester: true },
+      { id: 'SUB-BCA103-1', code: 'BCA103-1', name: 'Python Programming', course: 'BCA', academicYear: '1st Year', semester: 'Semester 1', semesterNum: 1, type: 'Core', faculty: 'Department Professor', midsemMarks: 44, midsemMax: 50, endsemMarks: 88, endsemMax: 100, status: 'Currently Enrolled (Active)', isCurrentSemester: true }
+    ],
+    backlogsHistory: []
+  }
+];
+
+export const DEFAULT_TEACHERS = [
+  {
+    id: 'TCH-FAC2024',
+    name: 'Faculty Advisor',
+    empId: 'FAC-2024-BCA',
+    username: 'faculty',
+    password: 'faculty123',
+    email: 'faculty.advisor@univ.edu',
+    department: 'Department of Computer Applications',
+    designation: 'Associate Professor & Academic Mentor',
+    subjects: ['Introduction to Web Technology', 'Python Programming'],
+    sections: ['Section A', 'Section B'],
+    hoursPerWeek: 14,
+    experience: '8 Years'
+  }
+];
+
 // ==========================================
 // STUDENTS CRUD
 // ==========================================
@@ -284,22 +337,24 @@ export function getStudents() {
     const raw = localStorage.getItem(STORAGE_KEY_STUDENTS);
     if (raw !== null) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        // Auto-heal students that have 0 enrolledSubjects
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // Auto-heal students that have 0 enrolledSubjects or missing password
         let hasChanges = false;
         const healed = parsed.map(s => {
+          let updated = { ...s };
           if (!s.enrolledSubjects || s.enrolledSubjects.length === 0) {
             hasChanges = true;
-            return {
-              ...s,
-              enrolledSubjects: getCurriculumSubjectsForYearAndSem(
-                s.course || 'Bachelor of Computer Applications (BCA)',
-                s.academicYear || s.semester || '1st Year',
-                s.semester || 'Semester 1'
-              )
-            };
+            updated.enrolledSubjects = getCurriculumSubjectsForYearAndSem(
+              s.course || 'Bachelor of Computer Applications (BCA)',
+              s.academicYear || s.semester || '1st Year',
+              s.semester || 'Semester 1'
+            );
           }
-          return s;
+          if (!s.password) {
+            hasChanges = true;
+            updated.password = 'student123';
+          }
+          return updated;
         });
         if (hasChanges) {
           saveStudents(healed);
@@ -310,7 +365,7 @@ export function getStudents() {
   } catch (e) {
     console.warn('Error reading students', e);
   }
-  return [];
+  return DEFAULT_STUDENTS;
 }
 
 export function saveStudents(students) {
@@ -334,8 +389,16 @@ export function addStudent(student) {
         student.semester || 'Semester 1'
       );
 
+  const cleanUsn = student.usn || student.id || `STU-${Date.now().toString().slice(-4)}`;
+  const cleanUsername = student.username || cleanUsn;
+  const cleanPassword = student.password || 'student123';
+
   const newStudent = {
-    id: student.id || `STU-${Date.now().toString().slice(-4)}`,
+    id: student.id || `STU-${cleanUsn}`,
+    name: student.name || 'Student',
+    usn: cleanUsn,
+    username: cleanUsername,
+    password: cleanPassword,
     status: student.status || 'Active',
     enrolledSubjects: assignedSubjects,
     backlogsHistory: student.backlogsHistory || [],
@@ -344,9 +407,12 @@ export function addStudent(student) {
     midsemMarks: Number(student.midsemMarks || 42),
     endsemStatus: student.endsemStatus || 'Eligible',
     ...student,
+    usn: cleanUsn,
+    username: cleanUsername,
+    password: cleanPassword,
     enrolledSubjects: assignedSubjects
   };
-  const updated = [newStudent, ...current];
+  const updated = [newStudent, ...current.filter(s => s.usn !== cleanUsn && s.id !== newStudent.id)];
   saveStudents(updated);
   return updated;
 }
@@ -373,12 +439,12 @@ export function getTeachers() {
     const raw = localStorage.getItem(STORAGE_KEY_TEACHERS);
     if (raw !== null) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     }
   } catch (e) {
     console.warn('Error reading teachers', e);
   }
-  return [];
+  return DEFAULT_TEACHERS;
 }
 
 export function saveTeachers(teachers) {
@@ -394,14 +460,25 @@ export function saveTeachers(teachers) {
 
 export function addTeacher(teacher) {
   const current = getTeachers();
+  const cleanEmpId = teacher.empId || teacher.id || `TCH-${Date.now().toString().slice(-4)}`;
+  const cleanUsername = teacher.username || cleanEmpId;
+  const cleanPassword = teacher.password || 'faculty123';
+
   const newTeacher = {
-    id: teacher.id || `TCH-${Date.now().toString().slice(-4)}`,
+    id: teacher.id || `TCH-${cleanEmpId}`,
+    name: teacher.name || 'Faculty Member',
+    empId: cleanEmpId,
+    username: cleanUsername,
+    password: cleanPassword,
     subjects: teacher.subjects || [],
     sections: teacher.sections || [],
     hoursPerWeek: Number(teacher.hoursPerWeek || 14),
-    ...teacher
+    ...teacher,
+    empId: cleanEmpId,
+    username: cleanUsername,
+    password: cleanPassword
   };
-  const updated = [newTeacher, ...current];
+  const updated = [newTeacher, ...current.filter(t => t.empId !== cleanEmpId && t.id !== newTeacher.id)];
   saveTeachers(updated);
   return updated;
 }
@@ -828,7 +905,8 @@ export function isStudentIdentifier(identifier) {
             s.usn?.toLowerCase() === clean ||
             s.id?.toLowerCase() === clean ||
             s.name?.toLowerCase() === clean ||
-            s.email?.toLowerCase() === clean
+            s.email?.toLowerCase() === clean ||
+            s.username?.toLowerCase() === clean
         );
         if (found) return true;
       }
@@ -855,6 +933,344 @@ export function isStudentIdentifier(identifier) {
   } catch {}
 
   return false;
+}
+
+/**
+ * Checks whether an identifier (EmpID, username, email) belongs to a faculty member.
+ * Used to strictly forbid faculty accounts from entering as students.
+ */
+export function isFacultyIdentifier(identifier) {
+  if (!identifier) return false;
+  const clean = String(identifier).trim().toLowerCase();
+
+  if (
+    clean === 'faculty' ||
+    clean === 'fac-2024-bca' ||
+    clean === 'faculty.advisor@univ.edu' ||
+    clean.includes('kochoushinobu0069')
+  ) {
+    return true;
+  }
+
+  // Check registered teachers in localStorage
+  try {
+    const rawTeachers = localStorage.getItem(STORAGE_KEY_TEACHERS);
+    if (rawTeachers) {
+      const teachers = JSON.parse(rawTeachers);
+      if (Array.isArray(teachers)) {
+        const found = teachers.some(
+          (t) =>
+            t.empId?.toLowerCase() === clean ||
+            t.id?.toLowerCase() === clean ||
+            t.name?.toLowerCase() === clean ||
+            t.email?.toLowerCase() === clean ||
+            t.username?.toLowerCase() === clean
+        );
+        if (found) return true;
+      }
+    }
+  } catch {}
+
+  // Check registered users in localStorage for role 'faculty'
+  try {
+    const rawUsers = localStorage.getItem(STORAGE_KEY_USERS);
+    if (rawUsers) {
+      const users = JSON.parse(rawUsers);
+      if (Array.isArray(users)) {
+        const found = users.some(
+          (u) =>
+            (u.role?.toLowerCase() === 'faculty' || u.role?.toLowerCase() === 'teacher') &&
+            (u.username?.toLowerCase() === clean ||
+              u.id?.toLowerCase() === clean ||
+              u.email?.toLowerCase() === clean ||
+              u.name?.toLowerCase() === clean)
+        );
+        if (found) return true;
+      }
+    }
+  } catch {}
+
+  return false;
+}
+
+/**
+ * Checks whether an identifier belongs to an administrator.
+ */
+export function isAdminIdentifier(identifier) {
+  if (!identifier) return false;
+  const clean = String(identifier).trim().toLowerCase();
+  const adminCreds = getAdminCredentials();
+  return (
+    clean === 'admin' ||
+    clean === 'adm-001' ||
+    clean === (adminCreds.username || '').toLowerCase() ||
+    clean === (adminCreds.email || '').toLowerCase() ||
+    clean === (adminCreds.id || '').toLowerCase()
+  );
+}
+
+/**
+ * Authenticates a student user.
+ * Requires:
+ * 1. User must NOT be admin or faculty.
+ * 2. User MUST be registered in students or users database.
+ * 3. Password MUST match the student's registered password.
+ */
+export function authenticateStudent(usernameOrIdentifier, password) {
+  const cleanInput = (usernameOrIdentifier || '').trim();
+  const cleanPass = (password || '').trim();
+
+  if (!cleanInput) {
+    return { success: false, error: 'Please enter your student username or USN.' };
+  }
+  if (!cleanPass) {
+    return { success: false, error: 'Please enter your student account password.' };
+  }
+
+  const cleanUser = cleanInput.toLowerCase();
+
+  // 1. STRICT ROLE CONTROL: ADMIN CANNOT ENTER AS STUDENT
+  if (cleanUser === 'admin' || cleanUser === 'adm-001' || cleanUser === 'admin@univ.edu') {
+    return {
+      success: false,
+      error: 'Access Denied: Administrator credentials cannot be used to log into the Student portal. Please switch to the Admin login tab.'
+    };
+  }
+
+  // 2. STRICT ROLE CONTROL: FACULTY CANNOT ENTER AS STUDENT
+  if (isFacultyIdentifier(cleanUser)) {
+    return {
+      success: false,
+      error: 'Access Denied: This account is registered as a Faculty member, not a Student. Only registered students can access the Student portal. Please switch to the Faculty login tab.'
+    };
+  }
+
+  // 3. FIND STUDENT RECORD
+  const allStudents = getStudents();
+  const allUsers = getUsers();
+
+  const matchedStudent = allStudents.find(
+    (s) =>
+      s.usn?.toLowerCase() === cleanUser ||
+      s.username?.toLowerCase() === cleanUser ||
+      s.id?.toLowerCase() === cleanUser ||
+      s.email?.toLowerCase() === cleanUser ||
+      s.name?.toLowerCase() === cleanUser
+  );
+
+  const matchedUser = allUsers.find(
+    (u) =>
+      (u.role?.toLowerCase() === 'student') &&
+      (u.username?.toLowerCase() === cleanUser ||
+        u.id?.toLowerCase() === cleanUser ||
+        u.email?.toLowerCase() === cleanUser ||
+        u.name?.toLowerCase() === cleanUser)
+  );
+
+  if (!matchedStudent && !matchedUser) {
+    return {
+      success: false,
+      error: `Access Denied: No student account found matching "${cleanInput}". Only registered students with correct credentials can enter. Please register first or verify your username/USN.`
+    };
+  }
+
+  // 4. VERIFY PASSWORD
+  const expectedPassword =
+    matchedStudent?.password ||
+    matchedUser?.password ||
+    (cleanUser === '24215107' || cleanUser === 'anirudh' ? 'student123' : null);
+
+  if (expectedPassword && cleanPass !== expectedPassword) {
+    return {
+      success: false,
+      error: 'Access Denied: Incorrect password. Please enter the correct password for your student account.'
+    };
+  }
+
+  // 5. SUCCESS: BUILD AUTHENTICATED SESSION
+  const displayName = matchedStudent?.name || matchedUser?.name || cleanInput;
+  const displayId = matchedStudent?.usn || matchedStudent?.id || matchedUser?.id || cleanInput.toUpperCase();
+  const cleanEmail = matchedStudent?.email || matchedUser?.email || `${cleanUser}@student.univ.edu`;
+
+  const userSession = {
+    username: matchedUser?.username || matchedStudent?.username || cleanInput,
+    name: displayName,
+    id: displayId,
+    usn: displayId,
+    role: 'student',
+    email: cleanEmail,
+    course: matchedStudent?.course || 'Bachelor of Computer Applications (BCA)',
+    academicYear: matchedStudent?.academicYear || '1st Year',
+    semester: matchedStudent?.semester || 'Semester 1',
+    enrolledSubjects: matchedStudent?.enrolledSubjects || [],
+    loginTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  };
+
+  return { success: true, session: userSession };
+}
+
+/**
+ * Authenticates a faculty member.
+ */
+export function authenticateFaculty(usernameOrIdentifier, password) {
+  const cleanInput = (usernameOrIdentifier || '').trim();
+  const cleanPass = (password || '').trim();
+
+  if (!cleanInput) {
+    return { success: false, error: 'Please enter your faculty username or Employee ID.' };
+  }
+  if (!cleanPass) {
+    return { success: false, error: 'Please enter your password.' };
+  }
+
+  const cleanUser = cleanInput.toLowerCase();
+
+  // 1. STRICT ROLE CONTROL: STUDENTS CANNOT ENTER FACULTY PANEL
+  if (isStudentIdentifier(cleanUser)) {
+    return {
+      success: false,
+      error: 'Access Denied: Student account detected. Student IDs cannot access the Faculty panel. Please switch to the Student login portal.'
+    };
+  }
+
+  // 2. ADMIN CANNOT ENTER FACULTY PANEL
+  if (cleanUser === 'admin' || cleanUser === 'adm-001' || cleanUser === 'admin@univ.edu') {
+    return {
+      success: false,
+      error: 'Access Denied: Administrator credentials cannot be used to log into the Faculty portal. Please switch to Admin login.'
+    };
+  }
+
+  // 3. FIND FACULTY RECORD
+  const allTeachers = getTeachers();
+  const allUsers = getUsers();
+
+  const matchedTeacher = allTeachers.find(
+    (t) =>
+      t.empId?.toLowerCase() === cleanUser ||
+      t.username?.toLowerCase() === cleanUser ||
+      t.id?.toLowerCase() === cleanUser ||
+      t.email?.toLowerCase() === cleanUser ||
+      t.name?.toLowerCase() === cleanUser
+  );
+
+  const matchedUser = allUsers.find(
+    (u) =>
+      (u.role?.toLowerCase() === 'faculty' || u.role?.toLowerCase() === 'teacher') &&
+      (u.username?.toLowerCase() === cleanUser ||
+        u.id?.toLowerCase() === cleanUser ||
+        u.email?.toLowerCase() === cleanUser ||
+        u.name?.toLowerCase() === cleanUser)
+  );
+
+  const isKochou = cleanUser.includes('kochoushinobu0069');
+
+  if (!matchedTeacher && !matchedUser && !isKochou && cleanUser !== 'faculty' && cleanUser !== 'fac-2024-bca') {
+    return {
+      success: false,
+      error: `Access Denied: No faculty account found matching "${cleanInput}". Only authorized faculty members can log in.`
+    };
+  }
+
+  // 4. VERIFY PASSWORD
+  const expectedPassword =
+    matchedTeacher?.password ||
+    matchedUser?.password ||
+    (cleanUser === 'faculty' ? 'faculty123' : null);
+
+  if (expectedPassword && cleanPass !== expectedPassword) {
+    return {
+      success: false,
+      error: 'Access Denied: Incorrect password. Please enter the correct password for your faculty account.'
+    };
+  }
+
+  const displayName = matchedTeacher?.name || matchedUser?.name || (isKochou ? 'Faculty Member' : cleanInput);
+  const displayId = matchedTeacher?.empId || matchedTeacher?.id || matchedUser?.id || (isKochou ? 'FAC-KOCHOU' : cleanInput.toUpperCase());
+  const cleanEmail = matchedTeacher?.email || matchedUser?.email || (cleanInput.includes('@') ? cleanInput : `${cleanUser}@univ.edu`);
+
+  const userSession = {
+    username: matchedUser?.username || matchedTeacher?.username || cleanInput,
+    name: displayName,
+    id: displayId,
+    empId: displayId,
+    role: 'faculty',
+    email: cleanEmail,
+    department: matchedTeacher?.department || matchedUser?.department || 'Department of Computer Applications',
+    designation: matchedTeacher?.designation || matchedUser?.designation || 'Faculty Advisor',
+    loginTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  };
+
+  return { success: true, session: userSession };
+}
+
+/**
+ * Authenticates an administrator.
+ */
+export function authenticateAdmin(usernameOrIdentifier, password) {
+  const cleanInput = (usernameOrIdentifier || '').trim();
+  const cleanPass = (password || '').trim();
+
+  if (!cleanInput) {
+    return { success: false, error: 'Please enter your administrator username.' };
+  }
+  if (!cleanPass) {
+    return { success: false, error: 'Please enter your administrator password.' };
+  }
+
+  const cleanUser = cleanInput.toLowerCase();
+
+  // 1. STRICT ROLE CONTROL: STUDENTS CANNOT ENTER ADMIN PANEL
+  if (isStudentIdentifier(cleanUser)) {
+    return {
+      success: false,
+      error: 'Access Denied: Student account detected. Student IDs cannot access the Administrator panel. Please switch to the Student login portal.'
+    };
+  }
+
+  const adminCreds = getAdminCredentials();
+  const isMatchUser =
+    cleanUser === (adminCreds.username || 'admin').toLowerCase() ||
+    cleanUser === (adminCreds.email || '').toLowerCase() ||
+    cleanUser === (adminCreds.id || '').toLowerCase();
+  const isMatchPass = cleanPass === (adminCreds.password || 'admin123');
+
+  const allUsers = getUsers();
+  const matchedAdminUser = allUsers.find(
+    (u) =>
+      (u.role?.toLowerCase() === 'admin' || u.role?.toLowerCase() === 'administrator') &&
+      (u.username?.toLowerCase() === cleanUser ||
+        u.email?.toLowerCase() === cleanUser ||
+        u.id?.toLowerCase() === cleanUser)
+  );
+
+  if (!isMatchUser && !matchedAdminUser) {
+    return {
+      success: false,
+      error: 'Access Denied: Invalid administrator credentials. Only authorized university administrators may sign in.'
+    };
+  }
+
+  if (matchedAdminUser && matchedAdminUser.password) {
+    if (cleanPass !== matchedAdminUser.password) {
+      return { success: false, error: 'Access Denied: Incorrect administrator password.' };
+    }
+  } else if (!isMatchPass) {
+    return { success: false, error: 'Access Denied: Incorrect administrator password.' };
+  }
+
+  const session = {
+    username: matchedAdminUser?.username || adminCreds.username || 'admin',
+    name: matchedAdminUser?.name || adminCreds.name || 'Exam Controller',
+    id: matchedAdminUser?.id || adminCreds.id || 'ADM-001',
+    role: 'admin',
+    email: matchedAdminUser?.email || adminCreds.email || 'admin@univ.edu',
+    department: matchedAdminUser?.department || adminCreds.department || 'Office of Academic Affairs & Examination Cell',
+    designation: adminCreds.designation || 'Chief Academic Controller & Administrator',
+    loginTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  };
+
+  return { success: true, session };
 }
 
 

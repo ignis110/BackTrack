@@ -35,6 +35,8 @@ import {
   updateStudentBacklogProgress,
   saveBacklogRecords,
   getStudents,
+  getUsers,
+  isFacultyIdentifier,
   BCA_CURRICULUM,
   getCurriculumSubjectsForYearAndSem
 } from '../utils/backlogStore';
@@ -82,13 +84,83 @@ export default function StudentDashboard() {
   const [activeTab, setActiveTab] = useState('Dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // STRICT AUTHENTICATION GUARD: Only authorized students can view Student Dashboard
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('currentUser');
+      if (!stored) {
+        navigate('/login?role=student');
+        return;
+      }
+      const u = JSON.parse(stored);
+
+      // If user is faculty or has faculty email/identifier, redirect immediately
+      if (
+        u.role?.toLowerCase() === 'faculty' ||
+        u.role?.toLowerCase() === 'teacher' ||
+        isFacultyIdentifier(u.email) ||
+        isFacultyIdentifier(u.id) ||
+        isFacultyIdentifier(u.username)
+      ) {
+        navigate('/faculty');
+        return;
+      }
+
+      // If user is admin, redirect to admin
+      if (u.role?.toLowerCase() === 'admin' || u.role?.toLowerCase() === 'administrator') {
+        navigate('/admin');
+        return;
+      }
+
+      // If role is not student, kick out to login
+      if (u.role && u.role.toLowerCase() !== 'student') {
+        localStorage.removeItem('currentUser');
+        navigate('/login?role=student');
+        return;
+      }
+
+      // Verify that student actually exists in registered students or users store
+      const allStudents = getStudents();
+      const allUsers = getUsers();
+      const isRegistered =
+        allStudents.some(
+          (s) =>
+            s.usn?.toLowerCase() === (u.usn || u.id || '').toLowerCase() ||
+            s.id?.toLowerCase() === (u.id || '').toLowerCase() ||
+            s.email?.toLowerCase() === (u.email || '').toLowerCase() ||
+            s.username?.toLowerCase() === (u.username || '').toLowerCase()
+        ) ||
+        allUsers.some(
+          (usr) =>
+            usr.role?.toLowerCase() === 'student' &&
+            (usr.id?.toLowerCase() === (u.id || '').toLowerCase() ||
+              usr.email?.toLowerCase() === (u.email || '').toLowerCase() ||
+              usr.username?.toLowerCase() === (u.username || '').toLowerCase())
+        );
+
+      if (!isRegistered) {
+        localStorage.removeItem('currentUser');
+        navigate('/login?role=student');
+        return;
+      }
+    } catch {
+      localStorage.removeItem('currentUser');
+      navigate('/login?role=student');
+    }
+  }, [navigate]);
+
   // Load current user from login session or fallback to mock
   const [profile, setProfile] = useState(() => {
     try {
       const stored = localStorage.getItem('currentUser');
       if (stored) {
         const u = JSON.parse(stored);
-        if (u && (u.role === 'student' || !u.role)) {
+        if (
+          u &&
+          u.role === 'student' &&
+          !isFacultyIdentifier(u.email) &&
+          !isFacultyIdentifier(u.id)
+        ) {
           const rawEmail = u.email || STUDENT_PROFILE.email;
           const cleanedEmail = sanitizeEmail(rawEmail);
           if (cleanedEmail !== rawEmail) {
