@@ -33,178 +33,32 @@ import {
   getBacklogRecords,
   updateStudentBacklogProgress,
   saveBacklogRecords,
-  DEMO_STUDENTS
+  getStudents,
+  BCA_CURRICULUM
 } from '../utils/backlogStore';
 import ClearanceCertificateModal from '../components/ClearanceCertificateModal';
 import { RecordFunnelStepper } from '../components/ResolutionFunnel';
 
-// Mock Initial Student Data
+// Default Student Data when no session is loaded
 const STUDENT_PROFILE = {
-  name: 'Aarav Patel',
-  usn: '1BT23BCA014',
-  course: 'Bachelor of Computer Applications (BCA)',
-  semester: 'Semester 3',
+  name: 'Student',
+  usn: 'USN',
+  course: 'Degree Program',
+  semester: 'Semester 1',
   semesterType: 'Odd Semester',
   section: 'Section A',
-  email: 'aarav.p@student.univ.edu',
-  phone: '+91 98765 43210',
-  advisor: 'Dr. Ramesh Sharma (HOD)',
-  cgpa: 8.74,
-  creditsEarned: 52,
+  email: 'student@student.univ.edu',
+  phone: '',
+  advisor: 'Faculty Advisor',
+  cgpa: 0,
+  creditsEarned: 0,
   totalCredits: 140,
-  midsemAverage: 88.5
+  midsemAverage: 0
 };
 
-const ENROLLED_SUBJECTS = [
-  // Odd Semester Subjects (Semester 3)
-  {
-    code: 'BCA301',
-    name: 'Database Management Systems',
-    credits: 4,
-    semester: 'Semester 3',
-    semesterType: 'Odd',
-    type: 'Core Theory',
-    faculty: 'Dr. Ramesh Sharma',
-    midsemMarks: 44,
-    midsemMax: 50,
-    midsemStatus: 'Evaluated (Passed)',
-    endsemStatus: 'Eligible - Hall Ticket Issued',
-    endsemMarks: 86,
-    endsemMax: 100,
-    status: 'Eligible for End-Sem Exam'
-  },
-  {
-    code: 'BCA302',
-    name: 'Operating Systems & Architecture',
-    credits: 4,
-    semester: 'Semester 3',
-    semesterType: 'Odd',
-    type: 'Core Theory',
-    faculty: 'Prof. Ananya Sen',
-    midsemMarks: 41,
-    midsemMax: 50,
-    midsemStatus: 'Evaluated (Passed)',
-    endsemStatus: 'Eligible - Hall Ticket Issued',
-    endsemMarks: 82,
-    endsemMax: 100,
-    status: 'Eligible for End-Sem Exam'
-  },
-  {
-    code: 'BCA303',
-    name: 'Python Programming & Data Structures',
-    credits: 3,
-    semester: 'Semester 3',
-    semesterType: 'Odd',
-    type: 'Practical Lab',
-    faculty: 'Dr. Ramesh Sharma',
-    midsemMarks: 48,
-    midsemMax: 50,
-    midsemStatus: 'Evaluated (Distinction)',
-    endsemStatus: 'Eligible - Hall Ticket Issued',
-    endsemMarks: 94,
-    endsemMax: 100,
-    status: 'Eligible for End-Sem Exam'
-  },
-  {
-    code: 'BCA304',
-    name: 'Discrete Mathematical Structures',
-    credits: 4,
-    semester: 'Semester 3',
-    semesterType: 'Odd',
-    type: 'Core Theory',
-    faculty: 'Prof. S. Ranganath',
-    midsemMarks: 40,
-    midsemMax: 50,
-    midsemStatus: 'Evaluated (Passed)',
-    endsemStatus: 'Eligible - Hall Ticket Issued',
-    endsemMarks: 78,
-    endsemMax: 100,
-    status: 'Eligible for End-Sem Exam'
-  },
-  // Even Semester Subjects (Semester 2 Record)
-  {
-    code: 'BCA201',
-    name: 'Data Structures with C++',
-    credits: 4,
-    semester: 'Semester 2',
-    semesterType: 'Even',
-    type: 'Core Theory',
-    faculty: 'Prof. Ananya Sen',
-    midsemMarks: 45,
-    midsemMax: 50,
-    midsemStatus: 'Evaluated (Passed)',
-    endsemStatus: 'Cleared (Grade: A)',
-    endsemMarks: 88,
-    endsemMax: 100,
-    status: 'Term Cleared'
-  },
-  {
-    code: 'BCA202',
-    name: 'Computer Organization & Architecture',
-    credits: 4,
-    semester: 'Semester 2',
-    semesterType: 'Even',
-    type: 'Core Theory',
-    faculty: 'Dr. Ramesh Sharma',
-    midsemMarks: 42,
-    midsemMax: 50,
-    midsemStatus: 'Evaluated (Passed)',
-    endsemStatus: 'Cleared (Grade: A+)',
-    endsemMarks: 90,
-    endsemMax: 100,
-    status: 'Term Cleared'
-  }
-];
-
-const STUDENT_REQUESTS = [
-  {
-    id: 'MEET-101',
-    subject: 'BCA303 - Python Programming (Prof. Rajesh V)',
-    type: 'Backlog Doubt Clearance & Subject Guidance',
-    slot: 'Faculty Cabin (Morning Slot: 10:30 AM - 11:30 AM)',
-    reason: 'Need guidance on Unit 3 recursion and practical lab assignments.',
-    date: 'Oct 08, 2026',
-    status: 'Approved',
-    facultyResponse: 'Meeting slot confirmed. Please visit Cabin #204 with your notes.'
-  },
-  {
-    id: 'MEET-102',
-    subject: 'BCA302 - Operating Systems (Prof. Ananya Sen)',
-    type: 'Remedial Coursework & Assignment Verification',
-    slot: 'Faculty Cabin (Afternoon Slot: 02:30 PM - 03:30 PM)',
-    reason: 'Submitted Unit 1-2 remedial questions; requesting sign-off and review.',
-    date: 'Oct 10, 2026',
-    status: 'Pending',
-    facultyResponse: 'Pending faculty slot confirmation.'
-  }
-];
-
-const NOTIFICATIONS_LIST = [
-  {
-    id: 'N-01',
-    title: 'Mid-Term Exam Schedule Released',
-    category: 'Exam Branch',
-    time: '3 hours ago',
-    body: 'The timetable for Mid-Term IA-2 has been finalized. BCA301 exam is on Oct 19.',
-    read: false
-  },
-  {
-    id: 'N-02',
-    title: 'Backlog Registration Portal Open',
-    category: 'Circular',
-    time: '1 day ago',
-    body: 'Students with backlogs from Sem 1 and 2 can register till Oct 14.',
-    read: false
-  },
-  {
-    id: 'N-03',
-    title: 'Assignment #3 Uploaded: SQL Triggers',
-    category: 'Academics',
-    time: '2 days ago',
-    body: 'Dr. Ramesh Sharma uploaded Assignment 3 for DBMS. Submission deadline: Oct 15.',
-    read: true
-  }
-];
+const ENROLLED_SUBJECTS = [];
+const STUDENT_REQUESTS = [];
+const NOTIFICATIONS_LIST = [];
 
 function sanitizeEmail(email) {
   if (!email) return 'student@student.univ.edu';
@@ -244,7 +98,7 @@ export default function StudentDashboard() {
           };
         }
       }
-    } catch {}
+    } catch { }
     return STUDENT_PROFILE;
   });
   const [subjects] = useState(ENROLLED_SUBJECTS);
@@ -253,6 +107,24 @@ export default function StudentDashboard() {
   const [backlogRecords, setBacklogRecords] = useState(() => getBacklogRecords());
   const [selectedCertificateRecord, setSelectedCertificateRecord] = useState(null);
 
+  // Route check: redirect admin or faculty to their authorized portal
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('currentUser');
+      if (stored) {
+        const u = JSON.parse(stored);
+        if (u && (u.role?.toLowerCase() === 'admin' || u.role?.toLowerCase() === 'administrator')) {
+          navigate('/admin');
+          return;
+        }
+        if (u && (u.role?.toLowerCase() === 'faculty' || u.role?.toLowerCase() === 'teacher')) {
+          navigate('/faculty');
+          return;
+        }
+      }
+    } catch {}
+  }, [navigate]);
+
   const handleSwitchStudent = (stu) => {
     setProfile(stu);
     try {
@@ -260,7 +132,7 @@ export default function StudentDashboard() {
         ...stu,
         role: 'student'
       }));
-    } catch {}
+    } catch { }
     triggerToast(`Switched active student to ${stu.name} (${stu.usn})!`);
   };
 
@@ -347,9 +219,19 @@ export default function StudentDashboard() {
           <span className="font-bold text-lg tracking-tight">BackTrack</span>
           <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-[#fdeedc]">Student</span>
         </div>
-        <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-slate-300 hover:text-white">
-          {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleLogout}
+            title="Log Out"
+            className="px-2.5 py-1.5 rounded-xl bg-rose-500/20 text-rose-300 hover:text-white border border-rose-500/30 text-xs font-bold flex items-center gap-1 cursor-pointer transition"
+          >
+            <LogOut size={14} />
+            <span>Logout</span>
+          </button>
+          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-slate-300 hover:text-white">
+            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
       </div>
 
       {/* Modern Sleek Dark Sidebar */}
@@ -429,28 +311,29 @@ export default function StudentDashboard() {
 
         {/* Sidebar Footer User Card */}
         <div className="p-4 border-t border-white/5 bg-[#171822]/60">
-          <div className="flex items-center justify-between p-2 rounded-2xl bg-white/5 border border-white/5">
+          <div className="p-2.5 rounded-2xl bg-white/5 border border-white/5">
             <button
               onClick={() => { setActiveTab('Settings & Profile'); setIsMobileMenuOpen(false); }}
-              className="flex items-center gap-3 text-left hover:opacity-85 transition cursor-pointer flex-1 mr-2 group"
+              className="flex items-center gap-3 text-left hover:opacity-85 transition cursor-pointer w-full min-w-0 group"
               title="Click to view Profile & Settings"
             >
               <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#fdeedc] to-[#e7f6ee] text-[#13141b] flex items-center justify-center font-bold text-xs shadow-inner shrink-0 group-hover:scale-105 transition-transform">
                 {profile.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase() || 'ST'}
               </div>
-              <div className="overflow-hidden">
+              <div className="min-w-0 flex-1 overflow-hidden">
                 <p className="text-xs font-bold text-white leading-tight truncate group-hover:text-[#fdeedc] transition-colors">{profile.name}</p>
-                <p className="text-[10px] text-emerald-400 flex items-center gap-1 font-medium font-mono truncate">
+                <p className="text-[10px] text-emerald-400 font-medium font-mono truncate">
                   {profile.usn}
                 </p>
               </div>
             </button>
             <button
               onClick={handleLogout}
-              title="Sign Out"
-              className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-white/10 transition-colors shrink-0 cursor-pointer"
+              className="mt-2.5 w-full py-2 px-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-white border border-rose-500/20 text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer shadow-xs"
+              title="Sign Out of Student Account"
             >
-              <LogOut size={16} />
+              <LogOut size={14} />
+              <span>Sign Out</span>
             </button>
           </div>
         </div>
@@ -463,35 +346,7 @@ export default function StudentDashboard() {
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col overflow-hidden pt-16 lg:pt-0">
-        {/* 1-Click Demo Student Switcher Bar */}
-        <div className="bg-[#14151b] text-white px-6 py-2.5 flex items-center justify-between text-xs overflow-x-auto gap-3 border-b border-white/10 shrink-0">
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span className="font-extrabold text-[#fdeedc] tracking-wider uppercase text-[10px]">Demo Student:</span>
-          </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            {DEMO_STUDENTS.map((stu) => {
-              const isSelected = profile.usn === stu.usn;
-              return (
-                <button
-                  key={stu.id}
-                  onClick={() => handleSwitchStudent(stu)}
-                  className={`px-3 py-1 rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${
-                    isSelected
-                      ? 'bg-[#fdeedc] text-[#8a4816] shadow-xs ring-1 ring-[#fcd7b5]'
-                      : 'bg-white/10 text-slate-300 hover:bg-white/20 hover:text-white'
-                  }`}
-                >
-                  <span>{stu.name.split(' ')[0]}</span>
-                  <span className="font-mono text-[10px] opacity-75">({stu.usn.slice(-3)})</span>
-                  {stu.name === 'Rohan Gupta' && (
-                    <span className="px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 text-[9px] font-bold">Cleared ✓</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+
 
         {/* Top Header */}
         <header className="h-20 px-6 lg:px-8 flex items-center justify-between border-b border-slate-200/60 bg-[#f6f7fa]/90 backdrop-blur-md">
@@ -500,7 +355,7 @@ export default function StudentDashboard() {
             <p className="text-xs text-slate-500 font-medium">{profile.course} • {profile.semester}</p>
           </div>
 
-          <div className="flex items-center gap-3.5">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => setIsApplyModalOpen(true)}
               className="hidden sm:flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-[#13141b] text-white text-xs font-bold hover:bg-slate-800 transition shadow-xs cursor-pointer"
@@ -526,10 +381,20 @@ export default function StudentDashboard() {
               <div className="w-9 h-9 rounded-2xl bg-[#13141b] text-white flex items-center justify-center font-bold text-xs shadow-sm">
                 {profile.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase() || 'ST'}
               </div>
-              <div className="hidden md:block text-left">
-                <span className="text-xs font-bold text-slate-900 block leading-tight">{profile.name}</span>
-                <span className="text-[10px] text-slate-400 font-medium font-mono">{profile.usn}</span>
+              <div className="hidden md:block text-left max-w-[130px]">
+                <span className="text-xs font-bold text-slate-900 block leading-tight truncate">{profile.name}</span>
+                <span className="text-[10px] text-slate-400 font-medium font-mono truncate block">{profile.usn}</span>
               </div>
+            </button>
+
+            {/* Prominent Log Out Header Button */}
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 hover:text-rose-700 font-bold text-xs transition cursor-pointer shadow-xs ml-1"
+              title="Sign Out of Student Account"
+            >
+              <LogOut size={15} />
+              <span className="hidden sm:inline">Log Out</span>
             </button>
           </div>
         </header>
@@ -617,12 +482,22 @@ export default function StudentDashboard() {
                   onChange={(e) => setRequestForm({ ...requestForm, subject: e.target.value })}
                   className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 outline-none font-medium"
                 >
-                  <option value="BCA301 - Database Management Systems (Prof. Sharma)">BCA301 - Database Management Systems (Prof. Sharma)</option>
-                  <option value="BCA302 - Operating Systems (Prof. Ananya Sen)">BCA302 - Operating Systems (Prof. Ananya Sen)</option>
-                  <option value="BCA303 - Python Programming (Prof. Rajesh V)">BCA303 - Python Programming (Prof. Rajesh V)</option>
-                  <option value="BCA304 - Discrete Mathematical Structures (Dr. Iyer)">BCA304 - Discrete Mathematical Structures (Dr. Iyer)</option>
-                  <option value="BCA201 - Data Structures with C++ (Prof. Sen)">BCA201 - Data Structures with C++ (Prof. Sen)</option>
-                  <option value="BCA202 - Computer Architecture (Dr. Mehta)">BCA202 - Computer Architecture (Dr. Mehta)</option>
+                  <option value="">-- Choose Subject (Arranged Semester-Wise) --</option>
+                  {[1, 2, 3, 4, 5, 6].map((sem) => (
+                    <optgroup
+                      key={sem}
+                      label={`Semester ${sem} (${BCA_CURRICULUM.filter((s) => s.semesterNum === sem).length} Subjects)`}
+                    >
+                      {BCA_CURRICULUM.filter((s) => s.semesterNum === sem).map((sub) => (
+                        <option
+                          key={sub.code}
+                          value={`${sub.code} - ${sub.name}`}
+                        >
+                          {sub.code} — {sub.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
                 </select>
               </div>
 
@@ -748,7 +623,7 @@ function StudentDashboardTab({ profile, subjects, requests, backlogRecords = [],
             Welcome back, {profile.name}
           </h3>
           <p className="text-xs text-slate-500 mt-1 max-w-xl leading-relaxed">
-            You are currently enrolled in <strong>{subjects.length} course subjects</strong> for {profile.semester}. 
+            You are currently enrolled in <strong>{subjects.length} course subjects</strong> for {profile.semester}.
             Your faculty advisor is <strong>{profile.advisor}</strong>. Keep up your continuous evaluation marks!
           </p>
         </div>
@@ -1209,17 +1084,15 @@ function StudentBacklogsTab({
             <div className="flex items-center gap-1 p-1 bg-[#f6f7fa] rounded-2xl text-xs font-bold">
               <button
                 onClick={() => setViewFilter('my')}
-                className={`px-3 py-1.5 rounded-xl transition cursor-pointer ${
-                  viewFilter === 'my' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
-                }`}
+                className={`px-3 py-1.5 rounded-xl transition cursor-pointer ${viewFilter === 'my' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
+                  }`}
               >
                 My Backlogs ({myRecords.length})
               </button>
               <button
                 onClick={() => setViewFilter('all')}
-                className={`px-3 py-1.5 rounded-xl transition cursor-pointer ${
-                  viewFilter === 'all' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
-                }`}
+                className={`px-3 py-1.5 rounded-xl transition cursor-pointer ${viewFilter === 'all' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
+                  }`}
               >
                 All Subjects ({backlogRecords.length})
               </button>
@@ -1263,11 +1136,10 @@ function StudentBacklogsTab({
 
                   {/* Status Pills */}
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                      item.backlogReason.includes('Attendance')
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${item.backlogReason.includes('Attendance')
                         ? 'bg-amber-50 text-amber-700 border border-amber-200'
                         : 'bg-rose-50 text-rose-700 border border-rose-200'
-                    }`}>
+                      }`}>
                       Reason: {item.backlogReason}
                     </span>
 
@@ -1366,7 +1238,7 @@ function StudentBacklogsTab({
                   <div className="p-3.5 bg-gradient-to-r from-[#fefbf6] to-[#fdeedc]/50 rounded-2xl border border-[#fcd7b5] text-xs space-y-1 shadow-xs">
                     <div className="flex items-center justify-between text-[11px]">
                       <span className="font-extrabold text-[#8a4816] flex items-center gap-1.5">
-                        <Sparkles size={13} /> Faculty Guidance & Advice ({item.facultyAuthor || 'Dr. Ramesh Sharma'})
+                        <Sparkles size={13} /> Faculty Guidance & Advice ({item.facultyAuthor || 'Faculty Advisor'})
                       </span>
                       {item.facultyNotesDate && (
                         <span className="text-[10px] text-slate-400 font-mono">{item.facultyNotesDate}</span>
@@ -1902,7 +1774,7 @@ function StudentProfileSettingsTab({ profile, setProfile, triggerToast }) {
           email: cleanMail
         })
       );
-    } catch {}
+    } catch { }
     triggerToast('Profile details updated and saved successfully!');
   };
 

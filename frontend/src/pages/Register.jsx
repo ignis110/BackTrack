@@ -13,6 +13,7 @@ import {
   Lock,
   Sparkles
 } from 'lucide-react';
+import { addUser, addStudent, addTeacher, isStudentIdentifier } from '../utils/backlogStore';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -88,12 +89,23 @@ export default function Register() {
   const handleRegister = (e) => {
     e.preventDefault();
 
-    const cleanName = formData.name.trim() || (role === 'student' ? 'Demo Student' : role === 'faculty' ? 'Dr. Faculty Member' : 'System Admin');
-    const cleanId = formData.idNumber.trim() || (role === 'student' ? '1BT23BCA099' : role === 'faculty' ? 'FAC-1002' : 'ADM-02');
+    const cleanName = formData.name.trim();
+    const cleanId = formData.idNumber.trim();
     const cleanEmail = formData.email.trim() || `${formData.username.trim() || cleanId.toLowerCase()}@${role === 'student' ? 'student.' : ''}univ.edu`;
+    const cleanUsername = formData.username.trim() || cleanId;
+
+    if (!cleanName || !cleanId || !cleanUsername) {
+      setToast('Please fill in all required fields.');
+      return;
+    }
+
+    if (role !== 'student' && isStudentIdentifier(cleanId)) {
+      setToast('Access Denied: Student ID cannot be registered for Faculty or Administrator role.');
+      return;
+    }
 
     const newSession = {
-      username: formData.username.trim() || cleanId,
+      username: cleanUsername,
       name: cleanName,
       id: cleanId,
       usn: cleanId,
@@ -110,6 +122,54 @@ export default function Register() {
     try {
       localStorage.setItem('currentUser', JSON.stringify(newSession));
     } catch {}
+
+    // Add to global users store
+    addUser({
+      id: cleanId,
+      name: cleanName,
+      username: cleanUsername,
+      email: cleanEmail,
+      role: role.charAt(0).toUpperCase() + role.slice(1),
+      department: formData.departmentCourse,
+      status: 'Active'
+    });
+
+    // If student, add to students store
+    if (role === 'student') {
+      addStudent({
+        id: `STU-${cleanId}`,
+        name: cleanName,
+        usn: cleanId,
+        course: formData.departmentCourse,
+        semester: formData.levelDesignation,
+        semesterType: formData.levelDesignation.includes('Odd') ? 'Odd' : 'Even',
+        section: 'Section A',
+        email: cleanEmail,
+        cgpa: 0,
+        midsemMarks: 0,
+        endsemStatus: 'Eligible',
+        backlogsCount: 0,
+        status: 'Active',
+        enrolledSubjects: [],
+        backlogsHistory: []
+      });
+    }
+
+    // If faculty, add to teachers store
+    if (role === 'faculty') {
+      addTeacher({
+        id: `TCH-${cleanId}`,
+        name: cleanName,
+        empId: cleanId,
+        email: cleanEmail,
+        department: formData.departmentCourse,
+        designation: formData.levelDesignation,
+        subjects: [],
+        sections: [],
+        hoursPerWeek: 14,
+        experience: 'New Faculty'
+      });
+    }
 
     setToast(`Account created successfully for ${cleanName}! Redirecting to ${role} portal...`);
 
@@ -204,7 +264,7 @@ export default function Register() {
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50"
-                    placeholder={role === 'student' ? 'Aarav Patel' : role === 'faculty' ? 'Dr. Ramesh Sharma' : 'Dean / Exam Officer'}
+                    placeholder={role === 'student' ? 'e.g. John Doe' : role === 'faculty' ? 'e.g. Dr. Jane Smith' : 'e.g. Exam Controller'}
                   />
                 </div>
               </div>
@@ -225,7 +285,7 @@ export default function Register() {
                     value={formData.idNumber}
                     onChange={(e) => setFormData({ ...formData, idNumber: e.target.value })}
                     className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50 font-mono"
-                    placeholder={role === 'student' ? '1BT23BCA014' : role === 'faculty' ? 'FAC-1001' : 'ADM-01'}
+                    placeholder={role === 'student' ? 'e.g. 1BT24BCA001' : role === 'faculty' ? 'e.g. FAC-2001' : 'e.g. ADM-101'}
                   />
                 </div>
               </div>
@@ -326,7 +386,7 @@ export default function Register() {
                   value={formData.username}
                   onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                   className="mt-1 block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50"
-                  placeholder={role === 'student' ? 'aarav101' : role === 'faculty' ? 'prof.sharma' : 'admin_exam'}
+                  placeholder="e.g. your_username"
                 />
               </div>
 

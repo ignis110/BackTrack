@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { MessageSquare, Send, X, Sparkles, CheckCircle2 } from 'lucide-react';
 import { addFacultyAdvice } from '../utils/backlogStore';
 
-export default function FacultyAdviceModal({ record, facultyName = 'Dr. Ramesh Sharma', onClose, onAdviceSent }) {
+export default function FacultyAdviceModal({ record, facultyName = 'Faculty Advisor', onClose, onAdviceSent }) {
   if (!record) return null;
 
   const [adviceText, setAdviceText] = useState(record.facultyNotes || '');

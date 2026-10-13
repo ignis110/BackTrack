@@ -37,247 +37,30 @@ import {
   getBacklogRecords,
   confirmClearance,
   toggleTeacherMeetingStatus,
-  addFacultyAdvice
+  addFacultyAdvice,
+  getStudents,
+  isStudentIdentifier
 } from '../utils/backlogStore';
 import ClearanceCertificateModal from '../components/ClearanceCertificateModal';
 import FacultyAdviceModal from '../components/FacultyAdviceModal';
 import { RecordFunnelStepper, ResolutionFunnelSummary } from '../components/ResolutionFunnel';
 
-// Sample Mock Data for Faculty
+// Clean Default Faculty Profile when no session is loaded
 const INITIAL_FACULTY = {
-  name: 'Dr. Ramesh Sharma',
-  empId: 'FAC-1001',
-  designation: 'Professor & HOD',
-  department: 'Computer Applications',
-  email: 'sharma@univ.edu',
-  phone: '+91 98450 12890',
-  cabin: 'Room 304, IT Block',
-  assignedSubjects: [
-    { id: 'SUB-301', code: 'BCA301', name: 'Database Management Systems', credits: 4, type: 'Core', section: 'Sec A & B', enrolled: 68, progress: 75 },
-    { id: 'SUB-303', code: 'BCA303', name: 'Python & Data Structures', credits: 3, type: 'Practical', section: 'Sec A', enrolled: 65, progress: 85 }
-  ],
-  assignedSections: ['BCA Sem 3 - Sec A', 'BCA Sem 3 - Sec B']
+  name: 'Faculty Member',
+  empId: 'FACULTY',
+  designation: 'Faculty Advisor',
+  department: 'Academic Department',
+  email: 'faculty@univ.edu',
+  phone: '',
+  cabin: '',
+  assignedSubjects: [],
+  assignedSections: []
 };
 
-const INITIAL_ASSIGNED_STUDENTS = [
-  {
-    id: 'STU-01',
-    name: 'Aarav Patel',
-    usn: '1BT23BCA014',
-    section: 'Sec A',
-    semester: 'Sem 3',
-    semesterType: 'Odd',
-    email: 'aarav.p@student.univ.edu',
-    cgpa: 8.74,
-    midsemMarks: 44,
-    midsemMax: 50,
-    endsemMarks: 88,
-    endsemMax: 100,
-    endsemStatus: 'Eligible',
-    dbmsMarks: 88,
-    pythonMarks: 94,
-    backlogs: 0,
-    status: 'Regular',
-    history: []
-  },
-  {
-    id: 'STU-02',
-    name: 'Sneha Deshmukh',
-    usn: '1BT23BCA048',
-    section: 'Sec B',
-    semester: 'Sem 3',
-    semesterType: 'Odd',
-    email: 'sneha.d@student.univ.edu',
-    cgpa: 7.62,
-    midsemMarks: 36,
-    midsemMax: 50,
-    endsemMarks: 72,
-    endsemMax: 100,
-    endsemStatus: 'Eligible',
-    dbmsMarks: 72,
-    pythonMarks: 78,
-    backlogs: 1,
-    status: 'Backlog Candidate',
-    history: [{ code: 'BCA202', name: 'Discrete Mathematics', sem: 'Sem 2 (Even)', status: 'Exam Registration Pending' }]
-  },
-  {
-    id: 'STU-03',
-    name: 'Vikram Mehta',
-    usn: '1BT23BCA089',
-    section: 'Sec A',
-    semester: 'Sem 3',
-    semesterType: 'Odd',
-    email: 'vikram.m@student.univ.edu',
-    cgpa: 7.20,
-    midsemMarks: 34,
-    midsemMax: 50,
-    endsemMarks: 65,
-    endsemMax: 100,
-    endsemStatus: 'Eligible',
-    dbmsMarks: 65,
-    pythonMarks: 70,
-    backlogs: 1,
-    status: 'Re-exam Scheduled',
-    history: [{ code: 'BCA101', name: 'Intro to Programming in C', sem: 'Sem 1 (Odd)', status: 'Fee Verified' }]
-  },
-  {
-    id: 'STU-04',
-    name: 'Ananya Sharma',
-    usn: '1BT23BCA003',
-    section: 'Sec A',
-    semester: 'Sem 3',
-    semesterType: 'Odd',
-    email: 'ananya.s@student.univ.edu',
-    cgpa: 9.20,
-    midsemMarks: 48,
-    midsemMax: 50,
-    endsemMarks: 95,
-    endsemMax: 100,
-    endsemStatus: 'Eligible',
-    dbmsMarks: 95,
-    pythonMarks: 92,
-    backlogs: 0,
-    status: 'Top Performer',
-    history: []
-  },
-  {
-    id: 'STU-05',
-    name: 'Karan Johar',
-    usn: '1BT23BCA055',
-    section: 'Sec B',
-    semester: 'Sem 3',
-    semesterType: 'Odd',
-    email: 'karan.j@student.univ.edu',
-    cgpa: 6.90,
-    midsemMarks: 28,
-    midsemMax: 50,
-    endsemMarks: 58,
-    endsemMax: 100,
-    endsemStatus: 'Retest Required',
-    dbmsMarks: 58,
-    pythonMarks: 64,
-    backlogs: 2,
-    status: 'Midsem Retest Candidate',
-    history: [
-      { code: 'BCA201', name: 'Computer Architecture', sem: 'Sem 2 (Even)', status: 'Pending Approval' },
-      { code: 'BCA204', name: 'Financial Accounting', sem: 'Sem 2 (Even)', status: 'Pending Approval' }
-    ]
-  },
-  {
-    id: 'STU-06',
-    name: 'Pooja Iyer',
-    usn: '1BT22CSE031',
-    section: 'Sec A',
-    semester: 'Sem 4',
-    semesterType: 'Even',
-    email: 'pooja.i@student.univ.edu',
-    cgpa: 9.15,
-    midsemMarks: 46,
-    midsemMax: 50,
-    endsemMarks: 92,
-    endsemMax: 100,
-    endsemStatus: 'Eligible',
-    dbmsMarks: 91,
-    pythonMarks: 89,
-    backlogs: 0,
-    status: 'Top Performer',
-    history: []
-  },
-  {
-    id: 'STU-07',
-    name: 'Rohan Gupta',
-    usn: '1BT22ECE082',
-    section: 'Sec B',
-    semester: 'Sem 2',
-    semesterType: 'Even',
-    email: 'rohan.g@student.univ.edu',
-    cgpa: 6.85,
-    midsemMarks: 31,
-    midsemMax: 50,
-    endsemMarks: 62,
-    endsemMax: 100,
-    endsemStatus: 'Eligible',
-    dbmsMarks: 64,
-    pythonMarks: 68,
-    backlogs: 1,
-    status: 'Backlog Candidate',
-    history: [{ code: 'ECE102', name: 'Basic Electrical Eng', sem: 'Sem 1 (Odd)', status: 'Exam Pending' }]
-  }
-];
-
-const INITIAL_REQUESTS = [
-  {
-    id: 'MEET-101',
-    studentName: 'Sneha Deshmukh',
-    usn: '1BT23BCA048',
-    type: 'Backlog Doubt Clearance & Guidance',
-    subject: 'BCA202 - Discrete Mathematics (Even Sem)',
-    slot: 'Faculty Cabin (Morning Slot: 10:30 AM - 11:30 AM)',
-    reason: 'Scored 32/100, requesting cabin guidance on Unit 3 graph theory questions.',
-    date: 'Oct 06, 2026',
-    status: 'Pending'
-  },
-  {
-    id: 'MEET-102',
-    studentName: 'Karan Johar',
-    usn: '1BT23BCA055',
-    type: 'Mid-Semester Retest Consultation',
-    subject: 'BCA301 - DBMS Lab & Theory (Odd Sem)',
-    slot: 'Faculty Cabin (Afternoon Slot: 02:30 PM - 03:30 PM)',
-    reason: 'Hospitalized for 8 days in September with viral fever. Medical fitness certificate submitted for consultation.',
-    date: 'Oct 05, 2026',
-    status: 'Pending'
-  },
-  {
-    id: 'MEET-103',
-    studentName: 'Vikram Mehta',
-    usn: '1BT23BCA089',
-    type: 'Remedial Coursework Verification',
-    subject: 'BCA101 - Programming in C (Odd Sem)',
-    slot: 'Faculty Cabin (Morning Slot: 11:00 AM - 12:00 PM)',
-    reason: 'Completed remedial lab questions. Requesting faculty cabin sign-off.',
-    date: 'Oct 04, 2026',
-    status: 'Approved'
-  },
-  {
-    id: 'MEET-104',
-    studentName: 'Aarav Patel',
-    usn: '1BT23BCA014',
-    type: 'Lab Work & Practical Review',
-    subject: 'BCA303 - Python Programming (Odd Sem)',
-    slot: 'Department Lab (Evening Slot: 03:30 PM - 04:30 PM)',
-    reason: 'Requesting review of assignment #2 scores and practical lab code.',
-    date: 'Oct 01, 2026',
-    status: 'Approved'
-  }
-];
-
-const INITIAL_NOTIFICATIONS = [
-  {
-    id: 'NOTIF-01',
-    title: 'Mid-Term Evaluation Marks Due',
-    category: 'Announcements',
-    body: 'All department faculty must freeze Internal Assessment (IA-1) marks by Friday, Oct 12.',
-    time: '2 hours ago',
-    read: false
-  },
-  {
-    id: 'NOTIF-02',
-    title: 'New Teacher Meeting Request',
-    category: 'Student Requests',
-    body: 'Sneha Deshmukh (1BT23BCA048) requested cabin consultation in Discrete Mathematics.',
-    time: '5 hours ago',
-    read: false
-  },
-  {
-    id: 'NOTIF-03',
-    title: 'Dean Examination Clearance',
-    category: 'Approval Updates',
-    body: 'Office has acknowledged Vikram Mehta re-exam application for Programming in C.',
-    time: 'Yesterday',
-    read: true
-  }
-];
+const INITIAL_ASSIGNED_STUDENTS = [];
+const INITIAL_REQUESTS = [];
+const INITIAL_NOTIFICATIONS = [];
 
 function sanitizeFacultyEmail(email) {
   if (!email) return 'faculty@univ.edu';
@@ -296,13 +79,52 @@ export default function FacultyDashboard() {
   const [activeTab, setActiveTab] = useState('Dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // Route Protection: strictly prevent student accounts and student IDs from accessing faculty panel
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('currentUser');
+      if (!stored) {
+        navigate('/login?role=faculty');
+        return;
+      }
+      const u = JSON.parse(stored);
+      // If student account tries to open faculty portal, immediately kick out
+      if (
+        u.role?.toLowerCase() === 'student' ||
+        isStudentIdentifier(u.id) ||
+        isStudentIdentifier(u.username) ||
+        isStudentIdentifier(u.usn)
+      ) {
+        navigate('/login?role=faculty');
+        return;
+      }
+      // If admin, redirect to admin
+      if (u.role?.toLowerCase() === 'admin' || u.role?.toLowerCase() === 'administrator') {
+        navigate('/admin');
+        return;
+      }
+      if (u.role && u.role.toLowerCase() !== 'faculty' && u.role.toLowerCase() !== 'teacher') {
+        navigate('/login?role=faculty');
+        return;
+      }
+    } catch {
+      navigate('/login?role=faculty');
+    }
+  }, [navigate]);
+
   // Load faculty from logged-in session or fallback to mock
   const [facultyProfile, setFacultyProfile] = useState(() => {
     try {
       const stored = localStorage.getItem('currentUser');
       if (stored) {
         const u = JSON.parse(stored);
-        if (u && (u.role === 'faculty' || !u.role)) {
+        if (
+          u &&
+          (u.role === 'faculty' || u.role === 'teacher' || !u.role) &&
+          !isStudentIdentifier(u.id) &&
+          !isStudentIdentifier(u.username) &&
+          u.role !== 'student'
+        ) {
           const rawEmail = u.email || INITIAL_FACULTY.email;
           const cleanedEmail = sanitizeFacultyEmail(rawEmail);
           if (cleanedEmail !== rawEmail) {
@@ -311,15 +133,17 @@ export default function FacultyDashboard() {
           return {
             ...INITIAL_FACULTY,
             name: u.name || u.username || INITIAL_FACULTY.name,
-            empId: u.id || u.username || INITIAL_FACULTY.empId,
-            email: cleanedEmail
+            empId: u.id || u.empId || u.username || INITIAL_FACULTY.empId,
+            email: cleanedEmail,
+            department: u.department || INITIAL_FACULTY.department,
+            designation: u.designation || INITIAL_FACULTY.designation
           };
         }
       }
     } catch {}
     return INITIAL_FACULTY;
   });
-  const [students, setStudents] = useState(INITIAL_ASSIGNED_STUDENTS);
+  const [students, setStudents] = useState(() => getStudents());
   const [requests, setRequests] = useState(INITIAL_REQUESTS);
   const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
   const [backlogRecords, setBacklogRecords] = useState(() => getBacklogRecords());
@@ -335,10 +159,19 @@ export default function FacultyDashboard() {
         setBacklogRecords(getBacklogRecords());
       }
     };
+    const handleStudentsSync = (e) => {
+      if (e?.detail) {
+        setStudents(e.detail);
+      } else {
+        setStudents(getStudents());
+      }
+    };
     window.addEventListener('backtrack_backlog_updated', handleSync);
+    window.addEventListener('backtrack_students_updated', handleStudentsSync);
     window.addEventListener('storage', handleSync);
     return () => {
       window.removeEventListener('backtrack_backlog_updated', handleSync);
+      window.removeEventListener('backtrack_students_updated', handleStudentsSync);
       window.removeEventListener('storage', handleSync);
     };
   }, []);
@@ -401,9 +234,19 @@ export default function FacultyDashboard() {
           <span className="font-bold text-lg tracking-tight">BackTrack</span>
           <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-[#f4e8fd]">Faculty</span>
         </div>
-        <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-slate-300 hover:text-white">
-          {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleLogout}
+            title="Log Out"
+            className="px-2.5 py-1.5 rounded-xl bg-rose-500/20 text-rose-300 hover:text-white border border-rose-500/30 text-xs font-bold flex items-center gap-1 cursor-pointer transition"
+          >
+            <LogOut size={14} />
+            <span>Logout</span>
+          </button>
+          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-slate-300 hover:text-white">
+            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
       </div>
 
       {/* Modern Sleek Dark Sidebar */}
@@ -493,28 +336,29 @@ export default function FacultyDashboard() {
 
         {/* Sidebar Footer User Card */}
         <div className="p-4 border-t border-white/5 bg-[#171822]/60">
-          <div className="flex items-center justify-between p-2 rounded-2xl bg-white/5 border border-white/5">
+          <div className="p-2.5 rounded-2xl bg-white/5 border border-white/5">
             <button
               onClick={() => { setActiveTab('Settings'); setIsMobileMenuOpen(false); }}
-              className="flex items-center gap-3 text-left hover:opacity-85 transition cursor-pointer flex-1 mr-2 group"
+              className="flex items-center gap-3 text-left hover:opacity-85 transition cursor-pointer w-full min-w-0 group"
               title="Click to view Faculty Settings & Profile"
             >
               <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#f4e8fd] to-[#fdeedc] text-[#13141b] flex items-center justify-center font-bold text-xs shadow-inner shrink-0 group-hover:scale-105 transition-transform">
                 {facultyProfile.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'FC'}
               </div>
-              <div className="overflow-hidden">
+              <div className="min-w-0 flex-1 overflow-hidden">
                 <p className="text-xs font-bold text-white leading-tight truncate group-hover:text-[#f4e8fd] transition-colors">{facultyProfile.name}</p>
-                <p className="text-[10px] text-emerald-400 flex items-center gap-1 font-medium font-mono truncate">
+                <p className="text-[10px] text-emerald-400 font-medium font-mono truncate">
                   {facultyProfile.empId}
                 </p>
               </div>
             </button>
             <button
               onClick={handleLogout}
-              title="Sign Out"
-              className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-white/10 transition-colors shrink-0 cursor-pointer"
+              className="mt-2.5 w-full py-2 px-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-white border border-rose-500/20 text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer shadow-xs"
+              title="Sign Out of Faculty Account"
             >
-              <LogOut size={16} />
+              <LogOut size={14} />
+              <span>Sign Out</span>
             </button>
           </div>
         </div>
@@ -534,7 +378,7 @@ export default function FacultyDashboard() {
             <p className="text-xs text-slate-500 font-medium">Department of {facultyProfile.department}</p>
           </div>
 
-          <div className="flex items-center gap-3.5">
+          <div className="flex items-center gap-3">
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-slate-200/80 shadow-xs text-xs font-medium text-slate-600">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               {facultyProfile.empId}
@@ -558,10 +402,20 @@ export default function FacultyDashboard() {
               <div className="w-9 h-9 rounded-2xl bg-[#13141b] text-white flex items-center justify-center font-bold text-xs shadow-sm">
                 {facultyProfile.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'FC'}
               </div>
-              <div className="hidden md:block text-left">
-                <span className="text-xs font-bold text-slate-900 block leading-tight">{facultyProfile.name}</span>
-                <span className="text-[10px] text-slate-400 font-medium font-mono">{facultyProfile.empId}</span>
+              <div className="hidden md:block text-left max-w-[130px]">
+                <span className="text-xs font-bold text-slate-900 block leading-tight truncate">{facultyProfile.name}</span>
+                <span className="text-[10px] text-slate-400 font-medium font-mono truncate block">{facultyProfile.empId}</span>
               </div>
+            </button>
+
+            {/* Prominent Log Out Header Button */}
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 hover:text-rose-700 font-bold text-xs transition cursor-pointer shadow-xs ml-1"
+              title="Sign Out of Faculty Account"
+            >
+              <LogOut size={15} />
+              <span className="hidden sm:inline">Log Out</span>
             </button>
           </div>
         </header>
@@ -1278,13 +1132,13 @@ function FacultyStudentsTab({ students, triggerToast }) {
                   <tbody className="divide-y divide-slate-100">
                     <tr>
                       <td className="p-2.5 font-bold">BCA301 - DBMS</td>
-                      <td className="p-2.5 text-slate-600">Dr. Ramesh Sharma</td>
+                      <td className="p-2.5 text-slate-600">{facultyProfile.name || 'Subject Faculty'}</td>
                       <td className="p-2.5 font-bold text-emerald-600">{selectedStudentForPdf.midsemMarks} / 50</td>
                       <td className="p-2.5 font-bold text-blue-600">{selectedStudentForPdf.endsemMarks} / 100</td>
                     </tr>
                     <tr>
                       <td className="p-2.5 font-bold">BCA303 - Python Prog</td>
-                      <td className="p-2.5 text-slate-600">Dr. Ramesh Sharma</td>
+                      <td className="p-2.5 text-slate-600">{facultyProfile.name || 'Subject Faculty'}</td>
                       <td className="p-2.5 font-bold text-emerald-600">{(selectedStudentForPdf.midsemMarks + 2) > 50 ? 50 : (selectedStudentForPdf.midsemMarks + 2)} / 50</td>
                       <td className="p-2.5 font-bold text-blue-600">{selectedStudentForPdf.pythonMarks} / 100</td>
                     </tr>
@@ -2068,7 +1922,7 @@ function FacultyStudentUpdatesTab({
                     <div className="p-3.5 bg-gradient-to-r from-[#fefbf6] to-[#fdeedc]/50 rounded-2xl border border-[#fcd7b5] text-xs space-y-1 shadow-xs">
                       <div className="flex items-center justify-between text-[11px]">
                         <span className="font-extrabold text-[#8a4816] flex items-center gap-1.5">
-                          <Sparkles size={13} /> Your Academic Guidance ({item.facultyAuthor || 'Dr. Ramesh Sharma'})
+                          <Sparkles size={13} /> Your Academic Guidance ({item.facultyAuthor || facultyProfile.name || 'Faculty Member'})
                         </span>
                         {item.facultyNotesDate && (
                           <span className="text-[10px] text-slate-400 font-mono">{item.facultyNotesDate}</span>

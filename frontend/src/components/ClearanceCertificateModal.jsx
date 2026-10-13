@@ -145,9 +145,9 @@ export default function ClearanceCertificateModal({ record, onClose }) {
             {/* Right: Digital Signature */}
             <div className="text-right space-y-1">
               <div className="font-serif italic font-bold text-slate-900 text-sm tracking-wide border-b border-slate-400 pb-1 inline-block">
-                Dr. Ramesh Sharma
+                {record.facultyAuthor || 'Authorized Signatory'}
               </div>
-              <span className="text-[10px] font-bold text-slate-700 block uppercase">Professor & Head of Dept.</span>
+              <span className="text-[10px] font-bold text-slate-700 block uppercase">Head of Academic Affairs / Faculty</span>
               <span className="text-[9px] text-slate-400 block font-mono">Academic Verification Authority</span>
             </div>
           </div>
