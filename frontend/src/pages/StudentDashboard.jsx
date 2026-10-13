@@ -27,7 +27,8 @@ import {
   MessageSquare,
   Send,
   Filter,
-  Award
+  Award,
+  Trash2
 } from 'lucide-react';
 import {
   getBacklogRecords,
@@ -39,6 +40,7 @@ import {
 } from '../utils/backlogStore';
 import ClearanceCertificateModal from '../components/ClearanceCertificateModal';
 import { RecordFunnelStepper } from '../components/ResolutionFunnel';
+import SubjectMarksModal from '../components/SubjectMarksModal';
 
 // Default Student Data when no session is loaded
 const STUDENT_PROFILE = {
@@ -159,6 +161,102 @@ export default function StudentDashboard() {
   const [notifications, setNotifications] = useState(NOTIFICATIONS_LIST);
   const [backlogRecords, setBacklogRecords] = useState(() => getBacklogRecords());
   const [selectedCertificateRecord, setSelectedCertificateRecord] = useState(null);
+
+  // Modal state for manual subject & marks profile builder
+  const [subjectModalOpen, setSubjectModalOpen] = useState(false);
+  const [editingSubject, setEditingSubject] = useState(null);
+
+  const persistSubjects = (newSubjects) => {
+    setSubjects(newSubjects);
+    // Dynamically recalculate midsemAverage and CGPA from entered marks
+    const validMid = newSubjects.filter(
+      (s) => s.midsemMarks !== null && s.midsemMarks !== undefined && s.midsemMarks !== ''
+    );
+    const avgMid = validMid.length > 0
+      ? (
+          (validMid.reduce((acc, s) => acc + Number(s.midsemMarks) / (Number(s.midsemMax) || 50), 0) /
+            validMid.length) *
+          100
+        ).toFixed(1)
+      : profile.midsemAverage || 88.5;
+
+    const validEnd = newSubjects.filter(
+      (s) => s.endsemMarks !== null && s.endsemMarks !== undefined && s.endsemMarks !== ''
+    );
+    const avgEnd = validEnd.length > 0
+      ? (
+          (validEnd.reduce((acc, s) => acc + Number(s.endsemMarks) / (Number(s.endsemMax) || 100), 0) /
+            validEnd.length) *
+          10
+        ).toFixed(1)
+      : profile.cgpa || 8.5;
+
+    const updatedProfile = {
+      ...profile,
+      midsemAverage: Number(avgMid),
+      cgpa: Number(avgEnd),
+      enrolledSubjects: newSubjects
+    };
+    setProfile(updatedProfile);
+
+    try {
+      const stored = localStorage.getItem('currentUser');
+      if (stored) {
+        const u = JSON.parse(stored);
+        localStorage.setItem(
+          'currentUser',
+          JSON.stringify({
+            ...u,
+            midsemAverage: Number(avgMid),
+            cgpa: Number(avgEnd),
+            enrolledSubjects: newSubjects
+          })
+        );
+      }
+      const allStudents = getStudents();
+      const sIdx = allStudents.findIndex((s) => s.usn === profile.usn || s.id === profile.usn);
+      if (sIdx !== -1) {
+        allStudents[sIdx] = {
+          ...allStudents[sIdx],
+          midsemAverage: Number(avgMid),
+          cgpa: Number(avgEnd),
+          enrolledSubjects: newSubjects
+        };
+        localStorage.setItem('backtrack_registered_students', JSON.stringify(allStudents));
+      }
+    } catch (e) {
+      console.warn('Error saving subjects:', e);
+    }
+  };
+
+  const handleSaveSubject = (subjectData) => {
+    let updated;
+    const existingIndex = subjects.findIndex((s) => s.id === subjectData.id || s.code === subjectData.code);
+    if (existingIndex !== -1) {
+      updated = [...subjects];
+      updated[existingIndex] = subjectData;
+    } else {
+      updated = [subjectData, ...subjects];
+    }
+    persistSubjects(updated);
+    triggerToast(`Subject ${subjectData.code} and marks saved successfully!`);
+  };
+
+  const handleDeleteSubject = (codeOrId) => {
+    const updated = subjects.filter((s) => s.code !== codeOrId && s.id !== codeOrId);
+    persistSubjects(updated);
+    triggerToast(`Subject removed from your enrolled list.`);
+  };
+
+  const handleOpenAddSubject = () => {
+    setEditingSubject(null);
+    setSubjectModalOpen(true);
+  };
+
+  const handleOpenEditSubject = (sub) => {
+    setEditingSubject(sub);
+    setSubjectModalOpen(true);
+  };
 
   // Route check: redirect admin or faculty to their authorized portal
   useEffect(() => {
@@ -462,13 +560,19 @@ export default function StudentDashboard() {
               backlogRecords={backlogRecords}
               onNavigate={(t) => setActiveTab(t)}
               openApplyModal={() => setIsApplyModalOpen(true)}
+              onOpenAddSubject={handleOpenAddSubject}
+              onOpenEditSubject={handleOpenEditSubject}
             />
           )}
 
           {activeTab === 'My Subjects' && (
             <StudentSubjectsTab
               subjects={subjects}
+              onOpenAddSubject={handleOpenAddSubject}
+              onOpenEditSubject={handleOpenEditSubject}
+              onDeleteSubject={handleDeleteSubject}
               triggerToast={triggerToast}
+              profile={profile}
             />
           )}
 
@@ -504,6 +608,7 @@ export default function StudentDashboard() {
               setProfile={setProfile}
               setSubjects={setSubjects}
               triggerToast={triggerToast}
+              onOpenAddSubject={handleOpenAddSubject}
             />
           )}
         </div>
@@ -623,6 +728,16 @@ export default function StudentDashboard() {
           onClose={() => setSelectedCertificateRecord(null)}
         />
       )}
+
+      {/* Modal: Manual Subject & Examination Marks Builder */}
+      <SubjectMarksModal
+        isOpen={subjectModalOpen}
+        onClose={() => setSubjectModalOpen(false)}
+        initialSubject={editingSubject}
+        onSave={handleSaveSubject}
+        studentCourse={profile.course}
+        defaultSemester={profile.semester}
+      />
     </div>
   );
 }
@@ -664,7 +779,16 @@ function SidebarBtn({ icon, label, active, badge, onClick }) {
 // =============================================================
 // TAB 1: STUDENT DASHBOARD OVERVIEW
 // =============================================================
-function StudentDashboardTab({ profile, subjects, requests, backlogRecords = [], onNavigate, openApplyModal }) {
+function StudentDashboardTab({
+  profile,
+  subjects,
+  requests,
+  backlogRecords = [],
+  onNavigate,
+  openApplyModal,
+  onOpenAddSubject,
+  onOpenEditSubject
+}) {
   return (
     <div className="space-y-6">
       {/* Welcome Banner */}
@@ -675,7 +799,7 @@ function StudentDashboardTab({ profile, subjects, requests, backlogRecords = [],
           </h3>
           <p className="text-xs text-slate-500 mt-1 max-w-xl leading-relaxed">
             You are currently enrolled in <strong>{subjects.length} course subjects</strong> for {profile.semester}.
-            Your faculty advisor is <strong>{profile.advisor}</strong>. Keep up your continuous evaluation marks!
+            Your faculty advisor is <strong>{profile.advisor}</strong>. You can customize your subjects and enter your marks anytime!
           </p>
         </div>
 
@@ -688,6 +812,12 @@ function StudentDashboardTab({ profile, subjects, requests, backlogRecords = [],
             className="text-xs font-bold text-[#13141b] bg-[#f4e8fd] hover:bg-[#eccffc] px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-xs"
           >
             My Subjects ({subjects.length}) <ChevronRight size={14} />
+          </button>
+          <button
+            onClick={onOpenAddSubject}
+            className="text-xs font-bold text-[#8a4816] bg-[#fdeedc] hover:bg-[#fadab6] px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+          >
+            <Plus size={14} /> Build / Add Subject & Marks
           </button>
           <button
             onClick={openApplyModal}
@@ -782,42 +912,78 @@ function StudentDashboardTab({ profile, subjects, requests, backlogRecords = [],
       {/* Subjects Overview & Teacher Meetings Status */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-white rounded-3xl p-6 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
             <div>
               <h4 className="text-base font-extrabold text-slate-900 tracking-tight">Your Enrolled Courses</h4>
               <p className="text-xs text-slate-500">Mid-Semester evaluation and End-Semester exam standing</p>
             </div>
-            <button onClick={() => onNavigate('My Subjects')} className="text-xs font-bold text-[#8a4816] hover:underline">
-              View all details
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={onOpenAddSubject}
+                className="text-xs font-bold text-[#8a4816] bg-[#fdeedc] hover:bg-[#fadab6] px-3 py-1.5 rounded-xl transition flex items-center gap-1 cursor-pointer shadow-xs"
+              >
+                <Plus size={13} /> Add / Enter Marks
+              </button>
+              <button onClick={() => onNavigate('My Subjects')} className="text-xs font-bold text-slate-600 hover:text-slate-900 hover:underline">
+                View all details
+              </button>
+            </div>
           </div>
 
           <div className="space-y-3">
-            {subjects.map((sub) => (
-              <div key={sub.code} className="p-4 rounded-2xl bg-[#fbfbfd] border border-slate-100 flex items-center justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-black text-xs text-slate-900">{sub.code}</span>
-                    <span className="text-xs font-bold text-slate-700">{sub.name}</span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${sub.semesterType === 'Odd' ? 'bg-[#fdeedc] text-[#8a4816]' : 'bg-[#e9f2fc] text-[#1e40af]'}`}>
-                      {sub.semester || (sub.semesterType + ' Sem')}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-400 mt-0.5">{sub.faculty} • {sub.type}</p>
-                </div>
-
-                <div className="flex items-center gap-6">
-                  <div className="text-right">
-                    <span className="text-[10px] text-slate-400 block font-bold">MIDSEM SCORE</span>
-                    <span className="text-xs font-extrabold text-emerald-600">{sub.midsemMarks} / {sub.midsemMax || 50}</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-[10px] text-slate-400 block font-bold">ENDSEM EXAM</span>
-                    <span className="text-xs font-extrabold text-[#1e40af]">{sub.endsemStatus ? 'Eligible' : 'Pending'}</span>
-                  </div>
-                </div>
+            {subjects.length === 0 ? (
+              <div className="p-8 text-center bg-[#fbfbfd] rounded-2xl border border-slate-100">
+                <p className="text-xs text-slate-400">No courses in your profile yet.</p>
+                <button
+                  onClick={onOpenAddSubject}
+                  className="mt-2 text-xs font-bold text-[#8a4816] hover:underline"
+                >
+                  + Click to add subjects & enter marks
+                </button>
               </div>
-            ))}
+            ) : (
+              subjects.map((sub) => {
+                const hasMid = sub.midsemMarks !== null && sub.midsemMarks !== undefined;
+                const hasEnd = sub.endsemMarks !== null && sub.endsemMarks !== undefined;
+
+                return (
+                  <div key={sub.code || sub.id} className="p-4 rounded-2xl bg-[#fbfbfd] border border-slate-100 flex items-center justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-black text-xs text-slate-900 font-mono">{sub.code}</span>
+                        <span className="text-xs font-bold text-slate-700">{sub.name}</span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${sub.semesterType === 'Odd' ? 'bg-[#fdeedc] text-[#8a4816]' : 'bg-[#e9f2fc] text-[#1e40af]'}`}>
+                          {sub.semester || (sub.semesterType + ' Sem')}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 mt-0.5">{sub.faculty} • {sub.type}</p>
+                    </div>
+
+                    <div className="flex items-center gap-3 sm:gap-5">
+                      <div className="text-right">
+                        <span className="text-[10px] text-slate-400 block font-bold">MIDSEM SCORE</span>
+                        <span className="text-xs font-extrabold text-emerald-600">
+                          {hasMid ? `${sub.midsemMarks} / ${sub.midsemMax || 50}` : '—'}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] text-slate-400 block font-bold">ENDSEM EXAM</span>
+                        <span className="text-xs font-extrabold text-[#1e40af]">
+                          {hasEnd ? `${sub.endsemMarks} / ${sub.endsemMax || 100}` : (sub.endsemStatus || 'Pending')}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => onOpenEditSubject(sub)}
+                        className="p-1.5 rounded-xl bg-slate-100 hover:bg-[#fdeedc] text-slate-500 hover:text-[#8a4816] transition cursor-pointer"
+                        title="Edit Marks"
+                      >
+                        <Edit3 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 
@@ -861,115 +1027,243 @@ function StudentDashboardTab({ profile, subjects, requests, backlogRecords = [],
 // =============================================================
 // TAB 2: MY SUBJECTS DETAILED VIEW
 // =============================================================
-function StudentSubjectsTab({ subjects, triggerToast }) {
-  const [semesterFilter, setSemesterFilter] = useState('All'); // 'All', 'Odd', 'Even'
+function StudentSubjectsTab({
+  subjects,
+  onOpenAddSubject,
+  onOpenEditSubject,
+  onDeleteSubject,
+  triggerToast,
+  profile
+}) {
+  const [semesterFilter, setSemesterFilter] = useState('All'); // 'All', 'Odd', 'Even', 'Semester 1' ... 'Semester 6'
+  const [examFilter, setExamFilter] = useState('All'); // 'All', 'Both', 'Mid-Sem', 'End-Sem'
 
   const filteredSubjects = useMemo(() => {
-    if (semesterFilter === 'All') return subjects;
-    return subjects.filter((s) => s.semesterType === semesterFilter);
-  }, [subjects, semesterFilter]);
+    return subjects.filter((s) => {
+      // Semester filter
+      if (semesterFilter === 'Odd' && s.semesterType !== 'Odd') return false;
+      if (semesterFilter === 'Even' && s.semesterType !== 'Even') return false;
+      if (semesterFilter.startsWith('Semester ') && s.semester !== semesterFilter) return false;
+
+      // Exam filter
+      if (examFilter === 'Both') {
+        const hasMid = s.midsemMarks !== null && s.midsemMarks !== undefined;
+        const hasEnd = s.endsemMarks !== null && s.endsemMarks !== undefined;
+        if (!hasMid || !hasEnd) return false;
+      } else if (examFilter === 'Mid-Sem') {
+        const hasMid = s.midsemMarks !== null && s.midsemMarks !== undefined;
+        if (!hasMid) return false;
+      } else if (examFilter === 'End-Sem') {
+        const hasEnd = s.endsemMarks !== null && s.endsemMarks !== undefined;
+        if (!hasEnd) return false;
+      }
+      return true;
+    });
+  }, [subjects, semesterFilter, examFilter]);
+
+  const midCount = subjects.filter((s) => s.midsemMarks !== null && s.midsemMarks !== undefined).length;
+  const endCount = subjects.filter((s) => s.endsemMarks !== null && s.endsemMarks !== undefined).length;
 
   return (
     <div className="space-y-5">
-      {/* Header with Semester Dropdown Filter */}
-      <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-[0_6px_20px_rgba(0,0,0,0.02)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Top Banner with Manual Builder Action */}
+      <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-[0_6px_20px_rgba(0,0,0,0.02)] flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h3 className="font-extrabold text-base text-slate-900 tracking-tight">Enrolled Semester Syllabus & Exams</h3>
-          <p className="text-xs text-slate-500">Track Mid-Semester and End-Semester assessments by semester cycle</p>
+          <div className="flex items-center gap-2">
+            <h3 className="font-extrabold text-lg text-slate-900 tracking-tight">Academic Subjects & Examination Marks</h3>
+            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#fdeedc] text-[#8a4816]">
+              {subjects.length} Enrolled
+            </span>
+          </div>
+          <p className="text-xs text-slate-500 mt-1">
+            Build your academic profile: select your semester subjects and enter your Mid-Sem and End-Sem marks.
+          </p>
         </div>
 
-        {/* Dropdown for Even and Odd Semester */}
-        <div className="flex items-center gap-2">
-          <label className="text-xs font-bold text-slate-500 flex items-center gap-1.5 shrink-0">
-            <Filter size={14} className="text-slate-400" />
-            Semester Cycle:
-          </label>
-          <div className="relative">
-            <select
-              value={semesterFilter}
-              onChange={(e) => setSemesterFilter(e.target.value)}
-              className="appearance-none pl-3.5 pr-9 py-2 rounded-2xl bg-[#f6f7fa] border border-slate-200 text-xs font-bold text-slate-800 outline-none cursor-pointer focus:bg-white focus:border-slate-400 transition shadow-xs"
-            >
-              <option value="All">All Semesters ({subjects.length})</option>
-              <option value="Odd">Odd Semesters (Sem 1, 3, 5, 7)</option>
-              <option value="Even">Even Semesters (Sem 2, 4, 6, 8)</option>
-            </select>
-            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-          </div>
+        <div className="flex items-center gap-2.5 shrink-0">
+          <button
+            onClick={onOpenAddSubject}
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#13141b] text-white rounded-2xl text-xs font-bold hover:bg-slate-800 transition cursor-pointer shadow-sm"
+          >
+            <Plus size={15} /> Select Subject & Enter Marks
+          </button>
         </div>
       </div>
 
-      {/* Subjects in Vertical Rows (One full row per subject instead of grid boxes) */}
+      {/* Filter Bar with Semester Dropdown & Exam Dropdown */}
+      <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-[0_4px_14px_rgba(0,0,0,0.02)] flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Semester Filter Dropdown */}
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-bold text-slate-500 flex items-center gap-1 shrink-0">
+              <Filter size={13} className="text-slate-400" />
+              Semester:
+            </label>
+            <div className="relative">
+              <select
+                value={semesterFilter}
+                onChange={(e) => setSemesterFilter(e.target.value)}
+                className="appearance-none pl-3 pr-8 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800 outline-none cursor-pointer focus:bg-white"
+              >
+                <option value="All">All Semesters ({subjects.length})</option>
+                <option value="Semester 1">Semester 1</option>
+                <option value="Semester 2">Semester 2</option>
+                <option value="Semester 3">Semester 3</option>
+                <option value="Semester 4">Semester 4</option>
+                <option value="Semester 5">Semester 5</option>
+                <option value="Semester 6">Semester 6</option>
+                <option value="Odd">Odd Semesters (1, 3, 5)</option>
+                <option value="Even">Even Semesters (2, 4, 6)</option>
+              </select>
+              <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            </div>
+          </div>
+
+          {/* Examination Filter Dropdown (explicitly requested) */}
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-bold text-slate-500 flex items-center gap-1 shrink-0">
+              <BookOpen size={13} className="text-slate-400" />
+              Exam Type:
+            </label>
+            <div className="relative">
+              <select
+                value={examFilter}
+                onChange={(e) => setExamFilter(e.target.value)}
+                className="appearance-none pl-3 pr-8 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800 outline-none cursor-pointer focus:bg-white"
+              >
+                <option value="All">All Examinations</option>
+                <option value="Both">Both Mid-Sem & End-Sem</option>
+                <option value="Mid-Sem">Mid-Semester Exam ({midCount})</option>
+                <option value="End-Sem">End-Semester Exam ({endCount})</option>
+              </select>
+              <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            </div>
+          </div>
+        </div>
+
+        <div className="text-[11px] text-slate-400 font-semibold">
+          Showing <strong>{filteredSubjects.length}</strong> of <strong>{subjects.length}</strong> subjects
+        </div>
+      </div>
+
+      {/* Subjects Rows */}
       <div className="space-y-3.5">
         {filteredSubjects.length === 0 ? (
-          <div className="p-8 text-center text-xs text-slate-400 bg-white rounded-3xl border border-slate-100">
-            No subjects found for the selected semester cycle.
+          <div className="p-10 text-center bg-white rounded-3xl border border-slate-100 space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-[#fdeedc] text-[#8a4816] flex items-center justify-center font-bold mx-auto">
+              <BookOpen size={22} />
+            </div>
+            <h4 className="font-extrabold text-sm text-slate-800">No subjects found for this selection</h4>
+            <p className="text-xs text-slate-400 max-w-sm mx-auto">
+              Select your semester and add subjects to record your Mid-Semester and End-Semester marks.
+            </p>
+            <button
+              onClick={onOpenAddSubject}
+              className="mt-2 px-5 py-2.5 bg-[#13141b] text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition cursor-pointer"
+            >
+              + Add / Select Subject Now
+            </button>
           </div>
         ) : (
-          filteredSubjects.map((sub) => (
-            <div
-              key={sub.code}
-              className="bg-white rounded-2xl p-5 border border-slate-100 shadow-[0_4px_16px_rgb(0,0,0,0.02)] hover:border-slate-200 hover:shadow-xs transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-4"
-            >
-              {/* Left Section: Subject Code, Name, Semester, Faculty */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                  <span className="font-black text-sm text-slate-900 tracking-tight">{sub.code}</span>
-                  <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${sub.semesterType === 'Odd' ? 'bg-[#fdeedc] text-[#8a4816]' : 'bg-[#e9f2fc] text-[#1e40af]'}`}>
-                    {sub.semester} ({sub.semesterType} Semester)
-                  </span>
-                  {sub.type && (
-                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                      {sub.type}
+          filteredSubjects.map((sub) => {
+            const hasMid = sub.midsemMarks !== null && sub.midsemMarks !== undefined;
+            const hasEnd = sub.endsemMarks !== null && sub.endsemMarks !== undefined;
+
+            return (
+              <div
+                key={sub.code || sub.id}
+                className="bg-white rounded-2xl p-5 border border-slate-100 shadow-[0_4px_16px_rgb(0,0,0,0.02)] hover:border-slate-200 hover:shadow-xs transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-4"
+              >
+                {/* Left Section: Subject Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                    <span className="font-black text-sm text-slate-900 tracking-tight font-mono">{sub.code}</span>
+                    <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${sub.semesterType === 'Odd' ? 'bg-[#fdeedc] text-[#8a4816]' : 'bg-[#e9f2fc] text-[#1e40af]'}`}>
+                      {sub.semester} ({sub.semesterType} Sem)
                     </span>
-                  )}
-                </div>
-                <h4 className="text-base font-extrabold text-slate-900 tracking-tight truncate">{sub.name}</h4>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Faculty In-charge: <strong className="text-slate-700">{sub.faculty}</strong>
-                </p>
-              </div>
-
-              {/* Middle Section: Mid-Sem and End-Sem Assessment Scores */}
-              <div className="flex items-center gap-3 sm:gap-4 shrink-0 flex-wrap">
-                <div className="px-3.5 py-2.5 rounded-2xl bg-[#f6f7fa] border border-slate-100 min-w-[135px]">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Mid-Sem</span>
-                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md">Passed</span>
+                    {sub.type && (
+                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                        {sub.type}
+                      </span>
+                    )}
+                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-100">
+                      {hasMid && hasEnd ? 'Mid & End-Sem' : hasMid ? 'Mid-Sem' : 'End-Sem'}
+                    </span>
                   </div>
-                  <div className="mt-1 flex items-baseline gap-1">
-                    <span className="font-black text-slate-900 text-sm">{sub.midsemMarks}</span>
-                    <span className="text-slate-400 text-xs">/ {sub.midsemMax || 50} Marks</span>
-                  </div>
+                  <h4 className="text-base font-extrabold text-slate-900 tracking-tight truncate">{sub.name}</h4>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Faculty In-charge: <strong className="text-slate-700">{sub.faculty}</strong>
+                  </p>
                 </div>
 
-                <div className="px-3.5 py-2.5 rounded-2xl bg-[#fbf9fe] border border-[#f1e5fa] min-w-[135px]">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-bold text-[#6b21a8] uppercase tracking-wider">End-Sem</span>
-                    <span className="text-[10px] font-bold text-[#1e40af] bg-blue-50 px-1.5 py-0.5 rounded-md">Eligible</span>
+                {/* Middle: Assessment Scores */}
+                <div className="flex items-center gap-3 sm:gap-4 shrink-0 flex-wrap">
+                  {/* Mid-Sem Box */}
+                  <div className="px-3.5 py-2.5 rounded-2xl bg-[#f6f7fa] border border-slate-100 min-w-[130px]">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Mid-Sem</span>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${hasMid && Number(sub.midsemMarks) >= 20 ? 'text-emerald-600 bg-emerald-50' : 'text-amber-600 bg-amber-50'}`}>
+                        {sub.midsemStatus || (hasMid ? 'Passed' : 'Pending')}
+                      </span>
+                    </div>
+                    <div className="mt-1 flex items-baseline gap-1">
+                      <span className="font-black text-slate-900 text-sm">
+                        {hasMid ? sub.midsemMarks : '—'}
+                      </span>
+                      <span className="text-slate-400 text-xs">/ {sub.midsemMax || 50} Marks</span>
+                    </div>
                   </div>
-                  <div className="mt-1 flex items-baseline gap-1">
-                    <span className="font-black text-slate-900 text-sm">{sub.endsemMarks || 85}</span>
-                    <span className="text-slate-400 text-xs">/ {sub.endsemMax || 100} Marks</span>
+
+                  {/* End-Sem Box */}
+                  <div className="px-3.5 py-2.5 rounded-2xl bg-[#fbf9fe] border border-[#f1e5fa] min-w-[130px]">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] font-bold text-[#6b21a8] uppercase tracking-wider">End-Sem</span>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${hasEnd && Number(sub.endsemMarks) >= 40 ? 'text-blue-600 bg-blue-50' : 'text-slate-500 bg-slate-100'}`}>
+                        {sub.endsemStatus || (hasEnd ? 'Eligible' : 'Pending')}
+                      </span>
+                    </div>
+                    <div className="mt-1 flex items-baseline gap-1">
+                      <span className="font-black text-slate-900 text-sm">
+                        {hasEnd ? sub.endsemMarks : '—'}
+                      </span>
+                      <span className="text-slate-400 text-xs">/ {sub.endsemMax || 100} Marks</span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Right Section: Status & Syllabus Download Action */}
-              <div className="flex items-center justify-between lg:justify-end gap-3 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100 shrink-0">
-                <span className="font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-xl text-xs whitespace-nowrap">
-                  {sub.status || 'Eligible for End-Sem Exam'}
-                </span>
-                <button
-                  onClick={() => triggerToast(`Syllabus and exam notes downloaded for ${sub.code}!`)}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-[#f6f7fa] text-slate-700 hover:bg-slate-200 hover:text-slate-900 transition cursor-pointer whitespace-nowrap shadow-xs"
-                  title="Download Syllabus & Model Papers"
-                >
-                  <Download size={13} /> Syllabus & Notes
-                </button>
+                {/* Right: Actions */}
+                <div className="flex items-center justify-between lg:justify-end gap-2 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100 shrink-0">
+                  <button
+                    onClick={() => onOpenEditSubject(sub)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-[#fdeedc] text-[#8a4816] hover:bg-[#fadab6] transition cursor-pointer whitespace-nowrap shadow-xs"
+                    title="Edit Marks and Subject Details"
+                  >
+                    <Edit3 size={13} /> Edit Marks
+                  </button>
+
+                  <button
+                    onClick={() => triggerToast(`Syllabus and exam notes downloaded for ${sub.code}!`)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-[#f6f7fa] text-slate-700 hover:bg-slate-200 transition cursor-pointer whitespace-nowrap shadow-xs"
+                    title="Download Syllabus & Model Papers"
+                  >
+                    <Download size={13} /> Syllabus
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (window.confirm(`Remove subject ${sub.code} (${sub.name}) from your enrolled list?`)) {
+                        onDeleteSubject(sub.code);
+                      }
+                    }}
+                    className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                    title="Remove Subject from Profile"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
@@ -1793,7 +2087,7 @@ function StudentNotificationsTab({ notifications, setNotifications, triggerToast
 // =============================================================
 // TAB 6: STUDENT PROFILE & SETTINGS
 // =============================================================
-function StudentProfileSettingsTab({ profile, setProfile, setSubjects, triggerToast }) {
+function StudentProfileSettingsTab({ profile, setProfile, setSubjects, triggerToast, onOpenAddSubject }) {
   const [profileForm, setProfileForm] = useState({
     name: profile.name,
     usn: profile.usn,
@@ -2010,6 +2304,24 @@ function StudentProfileSettingsTab({ profile, setProfile, setSubjects, triggerTo
             <p className="text-[11px] leading-relaxed">
               <strong>Curriculum Auto-Assignment:</strong> Updating your Academic Year or Semester will automatically enroll you in all corresponding subjects for that year (e.g., selecting 3rd Year loads 3rd Year Semester 5 & Semester 6 subjects).
             </p>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-[#f8f9fa] border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h5 className="font-extrabold text-xs text-slate-900">Custom Subject & Marks Profile Builder</h5>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                Manually choose your semester subjects and enter your Mid-Sem & End-Sem marks.
+              </p>
+            </div>
+            {onOpenAddSubject && (
+              <button
+                type="button"
+                onClick={onOpenAddSubject}
+                className="px-4 py-2 bg-[#fdeedc] text-[#8a4816] hover:bg-[#fadab6] rounded-xl font-bold text-xs transition cursor-pointer shrink-0 flex items-center gap-1.5"
+              >
+                <Plus size={14} /> Add / Select Subject & Marks
+              </button>
+            )}
           </div>
 
           <div className="pt-2 text-right">
