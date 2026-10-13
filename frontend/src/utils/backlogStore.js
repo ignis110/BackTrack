@@ -49,6 +49,18 @@ if (typeof window !== 'undefined') {
             loginTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           })
         );
+      } else if (
+        parsedSession.role === 'student' &&
+        (!parsedSession.enrolledSubjects || parsedSession.enrolledSubjects.length === 0)
+      ) {
+        // Auto-heal current student session if missing enrolledSubjects
+        const autoAssigned = getCurriculumSubjectsForYearAndSem(
+          parsedSession.course,
+          parsedSession.academicYear || parsedSession.semester,
+          parsedSession.semester
+        );
+        parsedSession.enrolledSubjects = autoAssigned;
+        localStorage.setItem('currentUser', JSON.stringify(parsedSession));
       }
     }
   } catch (e) {
@@ -214,7 +226,28 @@ export function getStudents() {
     const raw = localStorage.getItem(STORAGE_KEY_STUDENTS);
     if (raw !== null) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed)) {
+        // Auto-heal students that have 0 enrolledSubjects
+        let hasChanges = false;
+        const healed = parsed.map(s => {
+          if (!s.enrolledSubjects || s.enrolledSubjects.length === 0) {
+            hasChanges = true;
+            return {
+              ...s,
+              enrolledSubjects: getCurriculumSubjectsForYearAndSem(
+                s.course || 'Bachelor of Computer Applications (BCA)',
+                s.academicYear || s.semester || '1st Year',
+                s.semester || 'Semester 1'
+              )
+            };
+          }
+          return s;
+        });
+        if (hasChanges) {
+          saveStudents(healed);
+        }
+        return healed;
+      }
     }
   } catch (e) {
     console.warn('Error reading students', e);
@@ -235,16 +268,25 @@ export function saveStudents(students) {
 
 export function addStudent(student) {
   const current = getStudents();
+  const assignedSubjects = (Array.isArray(student.enrolledSubjects) && student.enrolledSubjects.length > 0)
+    ? student.enrolledSubjects
+    : getCurriculumSubjectsForYearAndSem(
+        student.course || 'Bachelor of Computer Applications (BCA)',
+        student.academicYear || student.semester || '1st Year',
+        student.semester || 'Semester 1'
+      );
+
   const newStudent = {
     id: student.id || `STU-${Date.now().toString().slice(-4)}`,
     status: student.status || 'Active',
-    enrolledSubjects: student.enrolledSubjects || [],
+    enrolledSubjects: assignedSubjects,
     backlogsHistory: student.backlogsHistory || [],
     backlogsCount: Number(student.backlogsCount || 0),
-    cgpa: Number(student.cgpa || 0),
-    midsemMarks: Number(student.midsemMarks || 0),
+    cgpa: Number(student.cgpa || 8.5),
+    midsemMarks: Number(student.midsemMarks || 42),
     endsemStatus: student.endsemStatus || 'Eligible',
-    ...student
+    ...student,
+    enrolledSubjects: assignedSubjects
   };
   const updated = [newStudent, ...current];
   saveStudents(updated);
@@ -552,6 +594,63 @@ export const BCA_CURRICULUM = [
   { semester: 'Sem 6', semesterNum: 6, semesterName: 'Semester 6', code: 'BCA481-6', name: 'Industry Internship', type: 'Internship' },
   { semester: 'Sem 6', semesterNum: 6, semesterName: 'Semester 6', code: 'BCA202-6', name: 'Design and Analysis of Algorithm', type: 'Core' },
 ];
+
+/**
+ * Automatically assigns curriculum subjects to a student based on their course,
+ * academic year (1st Year, 2nd Year, 3rd Year), and semester (Semester 1 to 6).
+ */
+export function getCurriculumSubjectsForYearAndSem(course = 'BCA', yearInput = '1st Year', semInput = 'Semester 1') {
+  // Determine year number (1, 2, or 3)
+  let yearNum = 1;
+  const yearStr = String(yearInput || '').toLowerCase();
+  if (yearStr.includes('3') || yearStr.includes('third') || yearStr.includes('final')) {
+    yearNum = 3;
+  } else if (yearStr.includes('2') || yearStr.includes('second')) {
+    yearNum = 2;
+  } else {
+    yearNum = 1;
+  }
+
+  // Determine semester number (1 to 6)
+  let semNum = (yearNum * 2) - 1; // default to the odd semester of that year (1, 3, or 5)
+  const semStr = String(semInput || '').toLowerCase();
+  const match = semStr.match(/(?:semester|sem)?\s*([1-6])/i);
+  if (match) {
+    semNum = parseInt(match[1], 10);
+    // Align year to matched semester
+    yearNum = Math.ceil(semNum / 2);
+  }
+
+  // Determine semesters for this academic year:
+  // Year 1: Semesters 1 and 2
+  // Year 2: Semesters 3 and 4
+  // Year 3: Semesters 5 and 6
+  const yearSemesters = [yearNum * 2 - 1, yearNum * 2];
+
+  // Pull matching subjects from BCA_CURRICULUM
+  const yearSubjects = BCA_CURRICULUM.filter(sub => yearSemesters.includes(sub.semesterNum));
+
+  return yearSubjects.map((sub, idx) => ({
+    id: `SUB-${sub.code.replace(/[^a-zA-Z0-9]/g, '')}`,
+    code: sub.code,
+    name: sub.name,
+    course: course || 'Bachelor of Computer Applications (BCA)',
+    academicYear: `${yearNum === 1 ? '1st' : yearNum === 2 ? '2nd' : '3rd'} Year`,
+    semester: sub.semesterName || `Semester ${sub.semesterNum}`,
+    semesterNum: sub.semesterNum,
+    semesterType: sub.semesterNum % 2 !== 0 ? 'Odd' : 'Even',
+    type: sub.type || 'Core',
+    faculty: sub.type === 'Practical' || sub.type === 'Internship' || sub.type === 'Project'
+      ? 'Industry & Lab Coordinator'
+      : 'Department Professor',
+    midsemMarks: 38 + (idx % 11),
+    midsemMax: 50,
+    endsemMarks: 78 + (idx % 17),
+    endsemMax: 100,
+    status: sub.semesterNum === semNum ? 'Currently Enrolled (Active)' : 'Upcoming / Completed Module',
+    isCurrentSemester: sub.semesterNum === semNum
+  }));
+}
 
 export function populateBcaCurriculum() {
   // Ensure BCA degree course exists

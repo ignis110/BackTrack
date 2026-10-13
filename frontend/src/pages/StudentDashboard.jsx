@@ -34,7 +34,8 @@ import {
   updateStudentBacklogProgress,
   saveBacklogRecords,
   getStudents,
-  BCA_CURRICULUM
+  BCA_CURRICULUM,
+  getCurriculumSubjectsForYearAndSem
 } from '../utils/backlogStore';
 import ClearanceCertificateModal from '../components/ClearanceCertificateModal';
 import { RecordFunnelStepper } from '../components/ResolutionFunnel';
@@ -43,17 +44,18 @@ import { RecordFunnelStepper } from '../components/ResolutionFunnel';
 const STUDENT_PROFILE = {
   name: 'Student',
   usn: 'USN',
-  course: 'Degree Program',
+  course: 'Bachelor of Computer Applications (BCA)',
+  academicYear: '1st Year',
   semester: 'Semester 1',
   semesterType: 'Odd Semester',
   section: 'Section A',
   email: 'student@student.univ.edu',
   phone: '',
   advisor: 'Faculty Advisor',
-  cgpa: 0,
-  creditsEarned: 0,
+  cgpa: 8.5,
+  creditsEarned: 24,
   totalCredits: 140,
-  midsemAverage: 0
+  midsemAverage: 88.5
 };
 
 const ENROLLED_SUBJECTS = [];
@@ -94,6 +96,10 @@ export default function StudentDashboard() {
             ...STUDENT_PROFILE,
             name: u.name || u.username || STUDENT_PROFILE.name,
             usn: u.usn || u.id || u.username || STUDENT_PROFILE.usn,
+            course: u.course || 'Bachelor of Computer Applications (BCA)',
+            academicYear: u.academicYear || '1st Year',
+            semester: u.semester || STUDENT_PROFILE.semester,
+            enrolledSubjects: u.enrolledSubjects,
             email: cleanedEmail
           };
         }
@@ -101,7 +107,54 @@ export default function StudentDashboard() {
     } catch { }
     return STUDENT_PROFILE;
   });
-  const [subjects] = useState(ENROLLED_SUBJECTS);
+
+  const [subjects, setSubjects] = useState(() => {
+    // 1. If enrolledSubjects exist on current session profile
+    if (Array.isArray(profile?.enrolledSubjects) && profile.enrolledSubjects.length > 0) {
+      return profile.enrolledSubjects;
+    }
+    // 2. Try matching from registered students store
+    try {
+      const allStudents = getStudents();
+      const match = allStudents.find((s) => s.usn === profile.usn || s.id === profile.id);
+      if (match && Array.isArray(match.enrolledSubjects) && match.enrolledSubjects.length > 0) {
+        return match.enrolledSubjects;
+      }
+    } catch {}
+    // 3. Fallback: Automatically generate and assign curriculum subjects
+    const autoAssigned = getCurriculumSubjectsForYearAndSem(
+      profile.course || 'Bachelor of Computer Applications (BCA)',
+      profile.academicYear || profile.semester || '1st Year',
+      profile.semester || 'Semester 1'
+    );
+    try {
+      const stored = localStorage.getItem('currentUser');
+      if (stored) {
+        const u = JSON.parse(stored);
+        localStorage.setItem('currentUser', JSON.stringify({ ...u, enrolledSubjects: autoAssigned }));
+      }
+    } catch {}
+    return autoAssigned;
+  });
+
+  // Keep subjects in sync if empty
+  useEffect(() => {
+    if (!subjects || subjects.length === 0) {
+      const autoAssigned = getCurriculumSubjectsForYearAndSem(
+        profile.course || 'Bachelor of Computer Applications (BCA)',
+        profile.academicYear || profile.semester || '1st Year',
+        profile.semester || 'Semester 1'
+      );
+      setSubjects(autoAssigned);
+      try {
+        const stored = localStorage.getItem('currentUser');
+        if (stored) {
+          const u = JSON.parse(stored);
+          localStorage.setItem('currentUser', JSON.stringify({ ...u, enrolledSubjects: autoAssigned }));
+        }
+      } catch {}
+    }
+  }, [profile, subjects]);
   const [requests, setRequests] = useState(STUDENT_REQUESTS);
   const [notifications, setNotifications] = useState(NOTIFICATIONS_LIST);
   const [backlogRecords, setBacklogRecords] = useState(() => getBacklogRecords());
@@ -449,6 +502,7 @@ export default function StudentDashboard() {
             <StudentProfileSettingsTab
               profile={profile}
               setProfile={setProfile}
+              setSubjects={setSubjects}
               triggerToast={triggerToast}
             />
           )}
@@ -1739,12 +1793,15 @@ function StudentNotificationsTab({ notifications, setNotifications, triggerToast
 // =============================================================
 // TAB 6: STUDENT PROFILE & SETTINGS
 // =============================================================
-function StudentProfileSettingsTab({ profile, setProfile, triggerToast }) {
+function StudentProfileSettingsTab({ profile, setProfile, setSubjects, triggerToast }) {
   const [profileForm, setProfileForm] = useState({
     name: profile.name,
     usn: profile.usn,
     email: sanitizeEmail(profile.email),
-    phone: profile.phone
+    phone: profile.phone,
+    course: profile.course || 'Bachelor of Computer Applications (BCA)',
+    academicYear: profile.academicYear || '1st Year',
+    semester: profile.semester || 'Semester 1'
   });
 
   const [passwordForm, setPasswordForm] = useState({
@@ -1753,11 +1810,43 @@ function StudentProfileSettingsTab({ profile, setProfile, triggerToast }) {
     confirmPassword: ''
   });
 
+  const getSemesterOptions = (year) => {
+    if (year === '1st Year') return ['Semester 1', 'Semester 2'];
+    if (year === '2nd Year') return ['Semester 3', 'Semester 4'];
+    if (year === '3rd Year') return ['Semester 5', 'Semester 6'];
+    return ['Semester 1', 'Semester 2', 'Semester 3', 'Semester 4', 'Semester 5', 'Semester 6'];
+  };
+
+  const handleYearChange = (newYear) => {
+    let nextSem = profileForm.semester;
+    if (newYear === '1st Year' && !['Semester 1', 'Semester 2'].includes(nextSem)) {
+      nextSem = 'Semester 1';
+    } else if (newYear === '2nd Year' && !['Semester 3', 'Semester 4'].includes(nextSem)) {
+      nextSem = 'Semester 3';
+    } else if (newYear === '3rd Year' && !['Semester 5', 'Semester 6'].includes(nextSem)) {
+      nextSem = 'Semester 5';
+    }
+    setProfileForm({ ...profileForm, academicYear: newYear, semester: nextSem });
+  };
+
   const handleUpdate = (e) => {
     e.preventDefault();
     const cleanMail = sanitizeEmail(profileForm.email);
-    const updated = { ...profile, ...profileForm, email: cleanMail };
+    const newEnrolled = getCurriculumSubjectsForYearAndSem(
+      profileForm.course,
+      profileForm.academicYear,
+      profileForm.semester
+    );
+    const updated = {
+      ...profile,
+      ...profileForm,
+      email: cleanMail,
+      enrolledSubjects: newEnrolled
+    };
     setProfile(updated);
+    if (setSubjects) {
+      setSubjects(newEnrolled);
+    }
     try {
       const stored = localStorage.getItem('currentUser');
       const u = stored ? JSON.parse(stored) : {};
@@ -1768,11 +1857,31 @@ function StudentProfileSettingsTab({ profile, setProfile, triggerToast }) {
           name: profileForm.name,
           id: profileForm.usn,
           usn: profileForm.usn,
-          email: cleanMail
+          email: cleanMail,
+          course: profileForm.course,
+          academicYear: profileForm.academicYear,
+          semester: profileForm.semester,
+          enrolledSubjects: newEnrolled
         })
       );
+      const allStudents = getStudents();
+      const sIdx = allStudents.findIndex((s) => s.usn === profile.usn || s.id === profile.usn);
+      if (sIdx !== -1) {
+        allStudents[sIdx] = {
+          ...allStudents[sIdx],
+          name: profileForm.name,
+          usn: profileForm.usn,
+          id: profileForm.usn,
+          email: cleanMail,
+          course: profileForm.course,
+          academicYear: profileForm.academicYear,
+          semester: profileForm.semester,
+          enrolledSubjects: newEnrolled
+        };
+        localStorage.setItem('backtrack_registered_students', JSON.stringify(allStudents));
+      }
     } catch { }
-    triggerToast('Profile details updated and saved successfully!');
+    triggerToast(`Profile updated! Enrolled in ${newEnrolled.length} curriculum subjects for ${profileForm.academicYear}.`);
   };
 
   const handlePassword = (e) => {
@@ -1795,10 +1904,15 @@ function StudentProfileSettingsTab({ profile, setProfile, triggerToast }) {
           </div>
           <div>
             <h3 className="font-extrabold text-lg text-slate-900">{profile.name}</h3>
-            <p className="text-xs text-slate-500 font-mono">USN: <strong>{profile.usn}</strong> • {profile.section}</p>
-            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#e7f6ee] text-[#166534] inline-block mt-1">
-              {profile.course}
-            </span>
+            <p className="text-xs text-slate-500 font-mono">USN: <strong>{profile.usn}</strong> • {profile.section || 'Section A'}</p>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#e7f6ee] text-[#166534] inline-block">
+                {profile.course}
+              </span>
+              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#fdeedc] text-[#8a4816] inline-block">
+                {profileForm.academicYear} • {profileForm.semester}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -1852,12 +1966,58 @@ function StudentProfileSettingsTab({ profile, setProfile, triggerToast }) {
             </div>
           </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+            <div>
+              <label className="font-bold text-slate-700 block mb-1">Degree Program</label>
+              <select
+                value={profileForm.course}
+                onChange={(e) => setProfileForm({ ...profileForm, course: e.target.value })}
+                className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:bg-white text-xs font-semibold"
+              >
+                <option value="Bachelor of Computer Applications (BCA)">Bachelor of Computer Applications (BCA)</option>
+                <option value="B.Tech Computer Science & Engineering">B.Tech Computer Science & Engineering</option>
+                <option value="B.Sc Information Technology">B.Sc Information Technology</option>
+              </select>
+            </div>
+            <div>
+              <label className="font-bold text-slate-700 block mb-1">Academic Year</label>
+              <select
+                value={profileForm.academicYear}
+                onChange={(e) => handleYearChange(e.target.value)}
+                className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:bg-white text-xs font-semibold"
+              >
+                <option value="1st Year">1st Year (Freshman)</option>
+                <option value="2nd Year">2nd Year (Sophomore)</option>
+                <option value="3rd Year">3rd Year (Final / Senior)</option>
+              </select>
+            </div>
+            <div>
+              <label className="font-bold text-slate-700 block mb-1">Current Active Semester</label>
+              <select
+                value={profileForm.semester}
+                onChange={(e) => setProfileForm({ ...profileForm, semester: e.target.value })}
+                className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:bg-white text-xs font-semibold"
+              >
+                {getSemesterOptions(profileForm.academicYear).map((sem) => (
+                  <option key={sem} value={sem}>{sem}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="p-3 rounded-2xl bg-amber-50/60 border border-amber-200/50 flex items-start gap-2.5 text-slate-700">
+            <Sparkles size={16} className="text-[#8a4816] shrink-0 mt-0.5" />
+            <p className="text-[11px] leading-relaxed">
+              <strong>Curriculum Auto-Assignment:</strong> Updating your Academic Year or Semester will automatically enroll you in all corresponding subjects for that year (e.g., selecting 3rd Year loads 3rd Year Semester 5 & Semester 6 subjects).
+            </p>
+          </div>
+
           <div className="pt-2 text-right">
             <button
               type="submit"
               className="px-5 py-2.5 bg-[#13141b] text-white rounded-2xl font-bold hover:bg-slate-800 transition cursor-pointer"
             >
-              Save Profile Updates
+              Save Profile & Sync Subjects
             </button>
           </div>
         </form>

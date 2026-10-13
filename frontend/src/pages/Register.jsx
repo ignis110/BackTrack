@@ -13,7 +13,7 @@ import {
   Lock,
   Sparkles
 } from 'lucide-react';
-import { addUser, addStudent, addTeacher, isStudentIdentifier } from '../utils/backlogStore';
+import { addUser, addStudent, addTeacher, isStudentIdentifier, getCurriculumSubjectsForYearAndSem } from '../utils/backlogStore';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -25,8 +25,9 @@ export default function Register() {
   const [formData, setFormData] = useState({
     name: '',
     idNumber: '', // USN for student, EmpID for faculty, StaffID for admin
-    departmentCourse: 'Computer Applications',
-    levelDesignation: 'Semester 3 (Odd Sem)',
+    departmentCourse: 'Bachelor of Computer Applications (BCA)',
+    academicYear: '1st Year',
+    levelDesignation: 'Semester 1 (Odd Sem)',
     email: '',
     username: '',
     password: ''
@@ -45,7 +46,8 @@ export default function Register() {
         setFormData((prev) => ({
           ...prev,
           departmentCourse: 'Bachelor of Computer Applications (BCA)',
-          levelDesignation: 'Semester 3 (Odd Sem)'
+          academicYear: '1st Year',
+          levelDesignation: 'Semester 1 (Odd Sem)'
         }));
       } else if (roleParam === 'faculty') {
         setFormData((prev) => ({
@@ -69,7 +71,8 @@ export default function Register() {
       setFormData((prev) => ({
         ...prev,
         departmentCourse: 'Bachelor of Computer Applications (BCA)',
-        levelDesignation: 'Semester 3 (Odd Sem)'
+        academicYear: '1st Year',
+        levelDesignation: 'Semester 1 (Odd Sem)'
       }));
     } else if (newRole === 'faculty') {
       setFormData((prev) => ({
@@ -85,6 +88,33 @@ export default function Register() {
       }));
     }
   };
+
+  const handleYearChange = (year) => {
+    let defaultSem = 'Semester 1 (Odd Sem)';
+    if (year === '2nd Year') defaultSem = 'Semester 3 (Odd Sem)';
+    if (year === '3rd Year') defaultSem = 'Semester 5 (Odd Sem)';
+    setFormData((prev) => ({
+      ...prev,
+      academicYear: year,
+      levelDesignation: defaultSem
+    }));
+  };
+
+  const handleSemesterChange = (sem) => {
+    let derivedYear = '1st Year';
+    if (sem.includes('3') || sem.includes('4')) derivedYear = '2nd Year';
+    if (sem.includes('5') || sem.includes('6')) derivedYear = '3rd Year';
+    setFormData((prev) => ({
+      ...prev,
+      academicYear: derivedYear,
+      levelDesignation: sem
+    }));
+  };
+
+  // Preview subjects assigned for the chosen year and semester
+  const previewSubjects = role === 'student'
+    ? getCurriculumSubjectsForYearAndSem(formData.departmentCourse, formData.academicYear, formData.levelDesignation)
+    : [];
 
   const handleRegister = (e) => {
     e.preventDefault();
@@ -104,6 +134,11 @@ export default function Register() {
       return;
     }
 
+    // Auto-assign curriculum subjects for students based on course, year, and semester
+    const enrolledSubjects = role === 'student'
+      ? getCurriculumSubjectsForYearAndSem(formData.departmentCourse, formData.academicYear, formData.levelDesignation)
+      : [];
+
     const newSession = {
       username: cleanUsername,
       name: cleanName,
@@ -113,7 +148,9 @@ export default function Register() {
       role: role,
       email: cleanEmail,
       course: role === 'student' ? formData.departmentCourse : undefined,
+      academicYear: role === 'student' ? formData.academicYear : undefined,
       semester: role === 'student' ? formData.levelDesignation : undefined,
+      enrolledSubjects: enrolledSubjects,
       department: role !== 'student' ? formData.departmentCourse : undefined,
       designation: role !== 'student' ? formData.levelDesignation : undefined,
       loginTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -134,23 +171,24 @@ export default function Register() {
       status: 'Active'
     });
 
-    // If student, add to students store
+    // If student, add to students store with auto-enrolled subjects
     if (role === 'student') {
       addStudent({
         id: `STU-${cleanId}`,
         name: cleanName,
         usn: cleanId,
         course: formData.departmentCourse,
+        academicYear: formData.academicYear,
         semester: formData.levelDesignation,
         semesterType: formData.levelDesignation.includes('Odd') ? 'Odd' : 'Even',
         section: 'Section A',
         email: cleanEmail,
-        cgpa: 0,
-        midsemMarks: 0,
+        cgpa: 8.5,
+        midsemMarks: 42,
         endsemStatus: 'Eligible',
         backlogsCount: 0,
         status: 'Active',
-        enrolledSubjects: [],
+        enrolledSubjects: enrolledSubjects,
         backlogsHistory: []
       });
     }
@@ -291,70 +329,149 @@ export default function Register() {
               </div>
             </div>
 
-            {/* Row 2: Course/Dept & Semester/Designation */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div>
-                <label className="block text-sm font-medium text-slate-700">
-                  {role === 'student' ? 'Course / Degree Program' : 'Department / Branch'}
-                </label>
-                <div className="mt-1 relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    {role === 'student' ? <BookOpen className="h-5 w-5 text-slate-400" /> : <Building className="h-5 w-5 text-slate-400" />}
+            {/* Row 2: Course/Dept & Year/Semester/Designation */}
+            {role === 'student' ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Course Selection */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700">Course / Degree Program</label>
+                    <div className="mt-1 relative rounded-md shadow-sm">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <BookOpen className="h-5 w-5 text-slate-400" />
+                      </div>
+                      <select
+                        value={formData.departmentCourse}
+                        onChange={(e) => setFormData({ ...formData, departmentCourse: e.target.value })}
+                        className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50 text-xs font-bold"
+                      >
+                        <option value="Bachelor of Computer Applications (BCA)">Bachelor of Computer Applications (BCA)</option>
+                        <option value="B.Tech Computer Science & Engineering">B.Tech Computer Science & Engineering</option>
+                        <option value="B.Sc Information Technology">B.Sc Information Technology</option>
+                      </select>
+                    </div>
                   </div>
-                  <input
-                    type="text"
-                    required
-                    value={formData.departmentCourse}
-                    onChange={(e) => setFormData({ ...formData, departmentCourse: e.target.value })}
-                    className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50"
-                    placeholder={role === 'student' ? 'BCA / B.Tech Computer Science' : 'Computer Applications'}
-                  />
+
+                  {/* Academic Year Selection */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700">Academic Year *</label>
+                    <select
+                      value={formData.academicYear}
+                      onChange={(e) => handleYearChange(e.target.value)}
+                      className="mt-1 block w-full px-3 py-3 border border-slate-200 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50 text-xs font-bold cursor-pointer"
+                    >
+                      <option value="1st Year">1st Year (First Year)</option>
+                      <option value="2nd Year">2nd Year (Second Year)</option>
+                      <option value="3rd Year">3rd Year (Final Year)</option>
+                    </select>
+                  </div>
+
+                  {/* Semester Selection */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700">Semester Cycle *</label>
+                    <select
+                      value={formData.levelDesignation}
+                      onChange={(e) => handleSemesterChange(e.target.value)}
+                      className="mt-1 block w-full px-3 py-3 border border-slate-200 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50 text-xs font-bold cursor-pointer"
+                    >
+                      {formData.academicYear === '1st Year' && (
+                        <>
+                          <option value="Semester 1 (Odd Sem)">Semester 1 (Odd Semester)</option>
+                          <option value="Semester 2 (Even Sem)">Semester 2 (Even Semester)</option>
+                        </>
+                      )}
+                      {formData.academicYear === '2nd Year' && (
+                        <>
+                          <option value="Semester 3 (Odd Sem)">Semester 3 (Odd Semester)</option>
+                          <option value="Semester 4 (Even Sem)">Semester 4 (Even Semester)</option>
+                        </>
+                      )}
+                      {formData.academicYear === '3rd Year' && (
+                        <>
+                          <option value="Semester 5 (Odd Sem)">Semester 5 (Odd Semester)</option>
+                          <option value="Semester 6 (Even Sem)">Semester 6 (Even Semester)</option>
+                        </>
+                      )}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Auto-Enrolled Subjects Preview */}
+                <div className="p-4 bg-indigo-50/70 border border-indigo-100/90 rounded-2xl animate-in fade-in">
+                  <div className="flex items-center justify-between text-xs font-bold text-indigo-900 mb-2">
+                    <span className="flex items-center gap-1.5">
+                      <Sparkles size={14} className="text-indigo-600 shrink-0" />
+                      Auto-Enrolled Curriculum ({previewSubjects.length} Courses for {formData.academicYear}):
+                    </span>
+                    <span className="text-[10px] bg-indigo-200/80 text-indigo-900 px-2.5 py-0.5 rounded-full font-bold">
+                      {formData.levelDesignation}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
+                    {previewSubjects.map((sub) => (
+                      <span
+                        key={sub.code}
+                        className={`px-2 py-1 rounded-xl text-[11px] font-semibold border ${
+                          sub.isCurrentSemester
+                            ? 'bg-white border-indigo-300 text-indigo-900 font-bold shadow-xs'
+                            : 'bg-white/60 border-slate-200 text-slate-600'
+                        }`}
+                        title={`${sub.name} (${sub.code}) - ${sub.semester}`}
+                      >
+                        {sub.name} <span className="font-mono text-[10px] text-slate-400">({sub.code})</span>
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">Department / Branch</label>
+                  <div className="mt-1 relative rounded-md shadow-sm">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Building className="h-5 w-5 text-slate-400" />
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      value={formData.departmentCourse}
+                      onChange={(e) => setFormData({ ...formData, departmentCourse: e.target.value })}
+                      className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50"
+                      placeholder="Computer Applications"
+                    />
+                  </div>
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700">
-                  {role === 'student' ? 'Semester Cycle' : 'Designation / Administrative Title'}
-                </label>
-                {role === 'student' ? (
-                  <select
-                    value={formData.levelDesignation}
-                    onChange={(e) => setFormData({ ...formData, levelDesignation: e.target.value })}
-                    className="mt-1 block w-full pl-3 pr-10 py-3 border border-slate-200 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50"
-                  >
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
-                      <option key={s} value={`Semester ${s} (${s % 2 !== 0 ? 'Odd Sem' : 'Even Sem'})`}>
-                        Semester {s} ({s % 2 !== 0 ? 'Odd Semester' : 'Even Semester'})
-                      </option>
-                    ))}
-                  </select>
-                ) : role === 'faculty' ? (
-                  <select
-                    value={formData.levelDesignation}
-                    onChange={(e) => setFormData({ ...formData, levelDesignation: e.target.value })}
-                    className="mt-1 block w-full pl-3 pr-10 py-3 border border-slate-200 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50"
-                  >
-                    <option value="Professor & HOD">Professor & HOD</option>
-                    <option value="Associate Professor">Associate Professor</option>
-                    <option value="Assistant Professor">Assistant Professor</option>
-                    <option value="Senior Lecturer">Senior Lecturer</option>
-                    <option value="Guest Faculty">Guest Faculty</option>
-                  </select>
-                ) : (
-                  <select
-                    value={formData.levelDesignation}
-                    onChange={(e) => setFormData({ ...formData, levelDesignation: e.target.value })}
-                    className="mt-1 block w-full pl-3 pr-10 py-3 border border-slate-200 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50"
-                  >
-                    <option value="Controller of Examinations">Controller of Examinations</option>
-                    <option value="Dean of Academic Affairs">Dean of Academic Affairs</option>
-                    <option value="Exam Cell Coordinator">Exam Cell Coordinator</option>
-                    <option value="System Administrator">System Administrator</option>
-                    <option value="Academic Registrar">Academic Registrar</option>
-                  </select>
-                )}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">Designation / Administrative Title</label>
+                  {role === 'faculty' ? (
+                    <select
+                      value={formData.levelDesignation}
+                      onChange={(e) => setFormData({ ...formData, levelDesignation: e.target.value })}
+                      className="mt-1 block w-full pl-3 pr-10 py-3 border border-slate-200 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50"
+                    >
+                      <option value="Professor & HOD">Professor & HOD</option>
+                      <option value="Associate Professor">Associate Professor</option>
+                      <option value="Assistant Professor">Assistant Professor</option>
+                      <option value="Senior Lecturer">Senior Lecturer</option>
+                      <option value="Guest Faculty">Guest Faculty</option>
+                    </select>
+                  ) : (
+                    <select
+                      value={formData.levelDesignation}
+                      onChange={(e) => setFormData({ ...formData, levelDesignation: e.target.value })}
+                      className="mt-1 block w-full pl-3 pr-10 py-3 border border-slate-200 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50"
+                    >
+                      <option value="Controller of Examinations">Controller of Examinations</option>
+                      <option value="Dean of Academic Affairs">Dean of Academic Affairs</option>
+                      <option value="Academic Registrar">Academic Registrar</option>
+                      <option value="System Administrator">System Administrator</option>
+                    </select>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Email */}
             <div>
