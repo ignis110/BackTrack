@@ -393,30 +393,6 @@ export default function FacultyDashboard() {
                 <span className="absolute top-2 right-2 w-2 h-2 bg-amber-500 rounded-full"></span>
               )}
             </button>
-
-            <button
-              onClick={() => setActiveTab('Settings')}
-              className="flex items-center gap-2.5 pl-2 hover:opacity-85 transition cursor-pointer text-left"
-              title="Click to view Faculty Settings & Profile"
-            >
-              <div className="w-9 h-9 rounded-2xl bg-[#13141b] text-white flex items-center justify-center font-bold text-xs shadow-sm">
-                {facultyProfile.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'FC'}
-              </div>
-              <div className="hidden md:block text-left max-w-[130px]">
-                <span className="text-xs font-bold text-slate-900 block leading-tight truncate">{facultyProfile.name}</span>
-                <span className="text-[10px] text-slate-400 font-medium font-mono truncate block">{facultyProfile.empId}</span>
-              </div>
-            </button>
-
-            {/* Prominent Log Out Header Button */}
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 hover:text-rose-700 font-bold text-xs transition cursor-pointer shadow-xs ml-1"
-              title="Sign Out of Faculty Account"
-            >
-              <LogOut size={15} />
-              <span className="hidden sm:inline">Log Out</span>
-            </button>
           </div>
         </header>
 

@@ -78,12 +78,70 @@ export const DEMO_STUDENTS = [];
 export function getBacklogRecords() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
+    let records = [];
     if (raw !== null) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        return parsed;
+        records = parsed;
       }
     }
+
+    // Auto-sync any backlog papers from students' enrolled subjects
+    const rawStudents = localStorage.getItem(STORAGE_KEY_STUDENTS);
+    if (rawStudents) {
+      const allStudents = JSON.parse(rawStudents);
+      if (Array.isArray(allStudents)) {
+        let added = false;
+        allStudents.forEach((st) => {
+          if (Array.isArray(st.enrolledSubjects)) {
+            st.enrolledSubjects.forEach((sub) => {
+              const isBacklog =
+                sub.status?.includes('Backlog') ||
+                sub.endsemStatus?.includes('Backlog') ||
+                sub.midsemStatus?.includes('Backlog') ||
+                (sub.endsemMarks !== null && sub.endsemMarks !== undefined && Number(sub.endsemMarks) < 40 && sub.examType !== 'Mid-Sem') ||
+                (sub.midsemMarks !== null && sub.midsemMarks !== undefined && Number(sub.midsemMarks) < 18 && sub.examType === 'Mid-Sem');
+
+              if (isBacklog) {
+                const exists = records.some(
+                  (r) =>
+                    (r.usn === st.usn || r.studentName === st.name) &&
+                    (r.subjectCode === sub.code || r.subjectName === sub.name)
+                );
+                if (!exists) {
+                  records.push({
+                    id: `BL-${st.usn || 'ST'}-${(sub.code || 'SUB').replace(/[^a-zA-Z0-9]/g, '')}`,
+                    studentName: st.name,
+                    usn: st.usn || st.id,
+                    course: st.course || 'Bachelor of Computer Applications (BCA)',
+                    semester: sub.semester || st.semester || 'Semester 1',
+                    subjectCode: sub.code,
+                    subjectName: sub.name,
+                    facultyInCharge: sub.faculty || 'Department Professor',
+                    reason: sub.endsemStatus?.includes('Backlog')
+                      ? 'Scored below cutoff in End-Semester Exam'
+                      : 'Continuous Evaluation Shortfall',
+                    clearanceStatus: 'Pending Clearance',
+                    metTeacher: false,
+                    assignmentsCompleted: 'Pending',
+                    teacherConsultation: 'Pending Guidance',
+                    repeatExamStatus: 'Preparing',
+                    resultStatus: 'Awaiting result',
+                    lastUpdated: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                  });
+                  added = true;
+                }
+              }
+            });
+          }
+        });
+        if (added) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+        }
+      }
+    }
+
+    return records;
   } catch (e) {
     console.warn('Error reading backlog records from localStorage', e);
   }

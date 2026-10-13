@@ -92,7 +92,7 @@ export function RecordFunnelStepper({ record }) {
  * Displays aggregate progress across all active backlogs.
  */
 export function ResolutionFunnelSummary({ records = [], activeFilter = null, onFilterSelect = null }) {
-  const total = records.length || 1;
+  const total = records.length;
   const metTeacher = records.filter((r) => r.metTeacher).length;
   const assignmentsDone = records.filter((r) => r.assignmentsCompleted === 'Completed').length;
   const examAppeared = records.filter((r) => r.repeatExamStatus === 'Appeared').length;
@@ -102,8 +102,8 @@ export function ResolutionFunnelSummary({ records = [], activeFilter = null, onF
     {
       id: 'all',
       name: '1. Enrolled Backlogs',
-      count: records.length,
-      pct: 100,
+      count: total,
+      pct: total === 0 ? 0 : 100,
       color: 'bg-slate-900',
       textColor: 'text-slate-900',
       bgLight: 'bg-slate-100',
@@ -113,7 +113,7 @@ export function ResolutionFunnelSummary({ records = [], activeFilter = null, onF
       id: 'met',
       name: '2. Met Faculty Advisor',
       count: metTeacher,
-      pct: Math.round((metTeacher / total) * 100),
+      pct: total === 0 ? 0 : Math.round((metTeacher / total) * 100),
       color: 'bg-[#8a4816]',
       textColor: 'text-[#8a4816]',
       bgLight: 'bg-[#fdeedc]',
@@ -123,7 +123,7 @@ export function ResolutionFunnelSummary({ records = [], activeFilter = null, onF
       id: 'assignments',
       name: '3. Assignments Verified',
       count: assignmentsDone,
-      pct: Math.round((assignmentsDone / total) * 100),
+      pct: total === 0 ? 0 : Math.round((assignmentsDone / total) * 100),
       color: 'bg-indigo-600',
       textColor: 'text-indigo-600',
       bgLight: 'bg-indigo-50',
@@ -133,7 +133,7 @@ export function ResolutionFunnelSummary({ records = [], activeFilter = null, onF
       id: 'appeared',
       name: '4. Repeat Exam Appeared',
       count: examAppeared,
-      pct: Math.round((examAppeared / total) * 100),
+      pct: total === 0 ? 0 : Math.round((examAppeared / total) * 100),
       color: 'bg-blue-600',
       textColor: 'text-blue-600',
       bgLight: 'bg-blue-50',
@@ -143,7 +143,7 @@ export function ResolutionFunnelSummary({ records = [], activeFilter = null, onF
       id: 'cleared',
       name: '5. Officially Cleared',
       count: cleared,
-      pct: Math.round((cleared / total) * 100),
+      pct: total === 0 ? 0 : Math.round((cleared / total) * 100),
       color: 'bg-emerald-600',
       textColor: 'text-emerald-700',
       bgLight: 'bg-[#e7f6ee]',
@@ -167,8 +167,11 @@ export function ResolutionFunnelSummary({ records = [], activeFilter = null, onF
         <div className="text-right">
           <span className="text-xs font-bold text-slate-400 uppercase">Clearance Conversion Rate</span>
           <div className="text-xl font-black text-emerald-700">
-            {Math.round((cleared / total) * 100)}%
+            {total === 0 ? '0%' : `${Math.round((cleared / total) * 100)}%`}
           </div>
+          <span className="text-[10px] text-slate-400 font-medium">
+            {total === 0 ? '0 Active Backlogs' : `${cleared} of ${total} Cleared`}
+          </span>
         </div>
       </div>
 
@@ -203,7 +206,7 @@ export function ResolutionFunnelSummary({ records = [], activeFilter = null, onF
               <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
                 <div
                   className={`h-full ${stage.color} rounded-full transition-all duration-500`}
-                  style={{ width: `${Math.max(stage.pct, 4)}%` }}
+                  style={{ width: stage.count === 0 ? '0%' : `${Math.max(stage.pct, 4)}%` }}
                 ></div>
               </div>
 
