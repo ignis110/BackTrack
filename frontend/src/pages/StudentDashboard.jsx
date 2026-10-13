@@ -616,9 +616,6 @@ function StudentDashboardTab({ profile, subjects, requests, backlogRecords = [],
       {/* Welcome Banner */}
       <div className="w-full bg-white rounded-3xl p-6 lg:p-7 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.03)] relative overflow-hidden flex flex-col justify-between">
         <div className="relative z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#fdeedc] text-[#8a4816] text-xs font-semibold mb-3">
-            <Sparkles size={13} /> Academic Status: Good Standing
-          </div>
           <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight">
             Welcome back, {profile.name}
           </h3>
