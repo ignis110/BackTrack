@@ -1242,14 +1242,6 @@ function StudentSubjectsTab({
                   </button>
 
                   <button
-                    onClick={() => triggerToast(`Syllabus and exam notes downloaded for ${sub.code}!`)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-[#f6f7fa] text-slate-700 hover:bg-slate-200 transition cursor-pointer whitespace-nowrap shadow-xs"
-                    title="Download Syllabus & Model Papers"
-                  >
-                    <Download size={13} /> Syllabus
-                  </button>
-
-                  <button
                     onClick={() => {
                       if (window.confirm(`Remove subject ${sub.code} (${sub.name}) from your enrolled list?`)) {
                         onDeleteSubject(sub.code);
