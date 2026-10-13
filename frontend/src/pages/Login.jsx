@@ -232,47 +232,6 @@ export default function Login() {
             ))}
           </div>
 
-          {/* Dedicated Demo Admin Credentials Card */}
-          {role === 'admin' && (
-            <div className="mb-6 p-4 rounded-2xl bg-[#13141b] text-white border border-slate-700/60 shadow-lg animate-in fade-in">
-              <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-white/10">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck size={16} className="text-[#f5caa0]" />
-                  <div>
-                    <span className="text-xs font-bold text-white block">Official University Administrator Access</span>
-                    <span className="text-[10px] text-slate-400">Office of Academic Affairs & Examination Cell</span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const creds = getAdminCredentials();
-                    setUsername(creds.username || 'admin');
-                    setPassword(creds.password || 'admin123');
-                    setErrorMessage('');
-                  }}
-                  className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-[#f5caa0] hover:text-white font-bold text-[11px] transition cursor-pointer border border-white/10"
-                  title="Click to auto-fill official admin credentials"
-                >
-                  Auto-Fill
-                </button>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
-                <div className="bg-white/5 p-2 rounded-xl">
-                  <span className="text-slate-400 block text-[9px] uppercase font-sans">Admin Username</span>
-                  <span className="text-emerald-400 font-bold">{getAdminCredentials().username || 'admin'}</span>
-                </div>
-                <div className="bg-white/5 p-2 rounded-xl">
-                  <span className="text-slate-400 block text-[9px] uppercase font-sans">Admin Password</span>
-                  <span className="text-emerald-400 font-bold">{getAdminCredentials().password || 'admin123'}</span>
-                </div>
-              </div>
-              <p className="text-[10px] text-amber-300/90 font-medium mt-2.5 flex items-center gap-1.5 bg-amber-500/10 p-2 rounded-xl border border-amber-500/20">
-                <AlertCircle size={13} className="shrink-0 text-amber-400" />
-                <span>Strict Security: Student IDs and Student profiles are strictly forbidden from this portal.</span>
-              </p>
-            </div>
-          )}
 
           {/* Error Message Alert */}
           {errorMessage && (
