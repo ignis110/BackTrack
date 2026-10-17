@@ -35,14 +35,23 @@ import {
   updateStudentBacklogProgress,
   saveBacklogRecords,
   getStudents,
+  saveStudents,
   getUsers,
   isFacultyIdentifier,
   BCA_CURRICULUM,
-  getCurriculumSubjectsForYearAndSem
+  getCurriculumSubjectsForYearAndSem,
+  getTeachers,
+  getRequests,
+  saveRequests,
+  addMeetingRequest,
+  getNotifications,
+  saveNotifications,
+  addNotification
 } from '../utils/backlogStore';
 import ClearanceCertificateModal from '../components/ClearanceCertificateModal';
 import { RecordFunnelStepper } from '../components/ResolutionFunnel';
 import SubjectMarksModal from '../components/SubjectMarksModal';
+import SemesterSubjectSelector from '../components/SemesterSubjectSelector';
 
 // Default Student Data when no session is loaded
 const STUDENT_PROFILE = {
@@ -56,10 +65,10 @@ const STUDENT_PROFILE = {
   email: 'student@student.univ.edu',
   phone: '',
   advisor: 'Faculty Advisor',
-  cgpa: 8.5,
-  creditsEarned: 24,
+  cgpa: 0.0,
+  creditsEarned: 0,
   totalCredits: 140,
-  midsemAverage: 88.5
+  midsemAverage: 0
 };
 
 const ENROLLED_SUBJECTS = [];
@@ -166,6 +175,29 @@ export default function StudentDashboard() {
           if (cleanedEmail !== rawEmail) {
             localStorage.setItem('currentUser', JSON.stringify({ ...u, email: cleanedEmail }));
           }
+          const validSubs = Array.isArray(u.enrolledSubjects) ? u.enrolledSubjects : [];
+          const validMid = validSubs.filter(
+            (s) => s.midsemMarks !== null && s.midsemMarks !== undefined && s.midsemMarks !== ''
+          );
+          const computedMid = validMid.length > 0
+            ? Number(((validMid.reduce((acc, s) => acc + Number(s.midsemMarks) / (Number(s.midsemMax) || 50), 0) / validMid.length) * 100).toFixed(1))
+            : null;
+
+          const computedMidScore = validMid.length > 0
+            ? Math.round((validMid.reduce((acc, s) => acc + (Number(s.midsemMarks) / (Number(s.midsemMax) || 50)), 0) / validMid.length) * 50)
+            : null;
+
+          const validEnd = validSubs.filter(
+            (s) => s.endsemMarks !== null && s.endsemMarks !== undefined && s.endsemMarks !== ''
+          );
+          const computedEnd = validEnd.length > 0
+            ? Number(((validEnd.reduce((acc, s) => acc + Number(s.endsemMarks) / (Number(s.endsemMax) || 100), 0) / validEnd.length) * 10).toFixed(1))
+            : 0;
+
+          const computedEndScore = validEnd.length > 0
+            ? Math.round((validEnd.reduce((acc, s) => acc + (Number(s.endsemMarks) / (Number(s.endsemMax) || 100)), 0) / validEnd.length) * 100)
+            : null;
+
           return {
             ...STUDENT_PROFILE,
             name: u.name || u.username || STUDENT_PROFILE.name,
@@ -174,6 +206,10 @@ export default function StudentDashboard() {
             academicYear: u.academicYear || '1st Year',
             semester: u.semester || STUDENT_PROFILE.semester,
             enrolledSubjects: u.enrolledSubjects,
+            cgpa: computedEnd > 0 ? computedEnd : (u.cgpa !== undefined && u.cgpa !== null ? Number(u.cgpa) : 0.0),
+            midsemAverage: computedMid,
+            midsemMarks: computedMidScore,
+            endsemMarks: computedEndScore,
             email: cleanedEmail
           };
         }
@@ -184,53 +220,29 @@ export default function StudentDashboard() {
 
   const [subjects, setSubjects] = useState(() => {
     // 1. If enrolledSubjects exist on current session profile
-    if (Array.isArray(profile?.enrolledSubjects) && profile.enrolledSubjects.length > 0) {
+    if (Array.isArray(profile?.enrolledSubjects)) {
       return profile.enrolledSubjects;
     }
     // 2. Try matching from registered students store
     try {
       const allStudents = getStudents();
       const match = allStudents.find((s) => s.usn === profile.usn || s.id === profile.id);
-      if (match && Array.isArray(match.enrolledSubjects) && match.enrolledSubjects.length > 0) {
+      if (match && Array.isArray(match.enrolledSubjects)) {
         return match.enrolledSubjects;
       }
     } catch {}
-    // 3. Fallback: Automatically generate and assign curriculum subjects
-    const autoAssigned = getCurriculumSubjectsForYearAndSem(
-      profile.course || 'Bachelor of Computer Applications (BCA)',
-      profile.academicYear || profile.semester || '1st Year',
-      profile.semester || 'Semester 1'
-    );
-    try {
-      const stored = localStorage.getItem('currentUser');
-      if (stored) {
-        const u = JSON.parse(stored);
-        localStorage.setItem('currentUser', JSON.stringify({ ...u, enrolledSubjects: autoAssigned }));
-      }
-    } catch {}
-    return autoAssigned;
+    // Do not auto-assign subjects - student will choose their own subjects
+    return [];
   });
 
-  // Keep subjects in sync if empty
-  useEffect(() => {
-    if (!subjects || subjects.length === 0) {
-      const autoAssigned = getCurriculumSubjectsForYearAndSem(
-        profile.course || 'Bachelor of Computer Applications (BCA)',
-        profile.academicYear || profile.semester || '1st Year',
-        profile.semester || 'Semester 1'
-      );
-      setSubjects(autoAssigned);
-      try {
-        const stored = localStorage.getItem('currentUser');
-        if (stored) {
-          const u = JSON.parse(stored);
-          localStorage.setItem('currentUser', JSON.stringify({ ...u, enrolledSubjects: autoAssigned }));
-        }
-      } catch {}
-    }
-  }, [profile, subjects]);
-  const [requests, setRequests] = useState(STUDENT_REQUESTS);
-  const [notifications, setNotifications] = useState(NOTIFICATIONS_LIST);
+  const [requests, setRequests] = useState(() => {
+    const all = getRequests();
+    return all.filter((r) => r.usn === profile.usn || r.studentName === profile.name || (!r.usn && !r.studentName));
+  });
+  const [notifications, setNotifications] = useState(() => {
+    const all = getNotifications();
+    return all.filter((n) => n.targetRole === 'student' || n.targetRole === 'all' || n.targetUsn === profile.usn);
+  });
   const [backlogRecords, setBacklogRecords] = useState(() => getBacklogRecords());
   const [selectedCertificateRecord, setSelectedCertificateRecord] = useState(null);
 
@@ -240,32 +252,48 @@ export default function StudentDashboard() {
 
   const persistSubjects = (newSubjects) => {
     setSubjects(newSubjects);
-    // Dynamically recalculate midsemAverage and CGPA from entered marks
+    // Dynamically recalculate midsemAverage, midsemMarks, and CGPA from entered marks
     const validMid = newSubjects.filter(
       (s) => s.midsemMarks !== null && s.midsemMarks !== undefined && s.midsemMarks !== ''
     );
-    const avgMid = validMid.length > 0
-      ? (
-          (validMid.reduce((acc, s) => acc + Number(s.midsemMarks) / (Number(s.midsemMax) || 50), 0) /
+    const avgMidPercent = validMid.length > 0
+      ? Number(
+          ((validMid.reduce((acc, s) => acc + Number(s.midsemMarks) / (Number(s.midsemMax) || 50), 0) /
             validMid.length) *
-          100
-        ).toFixed(1)
-      : profile.midsemAverage || 88.5;
+          100).toFixed(1)
+        )
+      : null;
+
+    const avgMidScore = validMid.length > 0
+      ? Math.round(
+          (validMid.reduce((acc, s) => acc + (Number(s.midsemMarks) / (Number(s.midsemMax) || 50)), 0) /
+            validMid.length) * 50
+        )
+      : null;
 
     const validEnd = newSubjects.filter(
       (s) => s.endsemMarks !== null && s.endsemMarks !== undefined && s.endsemMarks !== ''
     );
     const avgEnd = validEnd.length > 0
-      ? (
-          (validEnd.reduce((acc, s) => acc + Number(s.endsemMarks) / (Number(s.endsemMax) || 100), 0) /
+      ? Number(
+          ((validEnd.reduce((acc, s) => acc + Number(s.endsemMarks) / (Number(s.endsemMax) || 100), 0) /
             validEnd.length) *
-          10
-        ).toFixed(1)
-      : profile.cgpa || 8.5;
+          10).toFixed(1)
+        )
+      : 0.0;
+
+    const validEndScore = validEnd.length > 0
+      ? Math.round(
+          (validEnd.reduce((acc, s) => acc + (Number(s.endsemMarks) / (Number(s.endsemMax) || 100)), 0) /
+            validEnd.length) * 100
+        )
+      : null;
 
     const updatedProfile = {
       ...profile,
-      midsemAverage: Number(avgMid),
+      midsemAverage: avgMidPercent,
+      midsemMarks: avgMidScore,
+      endsemMarks: validEndScore,
       cgpa: Number(avgEnd),
       enrolledSubjects: newSubjects
     };
@@ -279,7 +307,9 @@ export default function StudentDashboard() {
           'currentUser',
           JSON.stringify({
             ...u,
-            midsemAverage: Number(avgMid),
+            midsemAverage: avgMidPercent,
+            midsemMarks: avgMidScore,
+            endsemMarks: validEndScore,
             cgpa: Number(avgEnd),
             enrolledSubjects: newSubjects
           })
@@ -290,14 +320,97 @@ export default function StudentDashboard() {
       if (sIdx !== -1) {
         allStudents[sIdx] = {
           ...allStudents[sIdx],
-          midsemAverage: Number(avgMid),
+          midsemAverage: avgMidPercent,
+          midsemMarks: avgMidScore,
+          endsemMarks: validEndScore,
           cgpa: Number(avgEnd),
           enrolledSubjects: newSubjects
         };
-        localStorage.setItem('backtrack_registered_students', JSON.stringify(allStudents));
+        saveStudents(allStudents);
       }
     } catch (e) {
       console.warn('Error saving subjects:', e);
+    }
+
+    // Synchronize Backlog / Repeat exam records
+    try {
+      const currentBacklogs = getBacklogRecords();
+      let updatedBacklogs = [...currentBacklogs];
+      let backlogChanged = false;
+
+      newSubjects.forEach((sub) => {
+        const isBacklogOrRepeat =
+          sub.isRepeat ||
+          sub.isBacklog ||
+          sub.enrollmentType?.includes('Repeat') ||
+          sub.enrollmentType?.includes('Backlog') ||
+          sub.endsemStatus?.includes('Backlog') ||
+          sub.endsemStatus?.includes('Failed') ||
+          sub.endsemStatus?.includes('Repeat') ||
+          sub.midsemStatus?.includes('Backlog') ||
+          (sub.endsemMarks !== null && sub.endsemMarks !== undefined && Number(sub.endsemMarks) < 40 && sub.examType !== 'Mid-Sem');
+
+        const existingIdx = updatedBacklogs.findIndex(
+          (b) =>
+            (b.usn === profile.usn || b.studentName === profile.name) &&
+            (b.subjectCode === sub.code || b.subjectName === sub.name)
+        );
+
+        if (isBacklogOrRepeat) {
+          backlogChanged = true;
+          const repeatStatus = sub.repeatExamStatus && sub.repeatExamStatus !== 'Not Applicable' ? sub.repeatExamStatus : 'Preparing';
+          if (existingIdx !== -1) {
+            updatedBacklogs[existingIdx] = {
+              ...updatedBacklogs[existingIdx],
+              repeatExamStatus: repeatStatus,
+              clearanceStatus: repeatStatus === 'Cleared' ? 'Cleared' : 'In Review',
+              originalMarks: sub.endsemMarks ?? sub.midsemMarks ?? updatedBacklogs[existingIdx].originalMarks,
+              semester: sub.semester || profile.semester,
+              backlogReason: sub.backlogReason || updatedBacklogs[existingIdx].backlogReason || 'Repeat due to Marks',
+              reason: sub.backlogReason || updatedBacklogs[existingIdx].reason || 'Repeat due to Marks'
+            };
+          } else {
+            updatedBacklogs.unshift({
+              id: `BL-${profile.usn || 'STU'}-${(sub.code || 'SUB').replace(/[^a-zA-Z0-9]/g, '')}`,
+              studentName: profile.name,
+              usn: profile.usn || profile.id,
+              course: profile.course || 'Bachelor of Computer Applications (BCA)',
+              semester: sub.semester || profile.semester || 'Semester 1',
+              subjectCode: sub.code,
+              subjectName: sub.name,
+              facultyInCharge: sub.faculty || 'Department Professor',
+              backlogReason: sub.backlogReason || 'Repeat due to Marks',
+              reason: sub.backlogReason || (sub.endsemStatus?.includes('Backlog')
+                ? 'Backlog in Semester Examination'
+                : sub.isRepeat || sub.enrollmentType?.includes('Repeat')
+                ? 'Registered for Repeat Examination'
+                : 'Scored below passing cutoff'),
+              clearanceStatus: repeatStatus === 'Cleared' ? 'Cleared' : 'In Review',
+              metTeacher: false,
+              assignmentsCompleted: 'Pending',
+              teacherConsultation: 'Pending Guidance',
+              repeatExamStatus: repeatStatus,
+              resultStatus: repeatStatus === 'Cleared' ? 'Cleared' : 'Awaiting result',
+              lastUpdated: 'Just now'
+            });
+          }
+        } else if (existingIdx !== -1 && (sub.endsemStatus === 'Passed' || sub.repeatExamStatus === 'Cleared')) {
+          backlogChanged = true;
+          updatedBacklogs[existingIdx] = {
+            ...updatedBacklogs[existingIdx],
+            clearanceStatus: 'Cleared',
+            repeatExamStatus: 'Cleared',
+            resultStatus: 'Passed'
+          };
+        }
+      });
+
+      if (backlogChanged) {
+        saveBacklogRecords(updatedBacklogs);
+        setBacklogRecords(updatedBacklogs);
+      }
+    } catch (e) {
+      console.warn('Error syncing backlogs:', e);
     }
   };
 
@@ -314,14 +427,86 @@ export default function StudentDashboard() {
     triggerToast(`Subject ${subjectData.code} and marks saved successfully!`);
   };
 
+  const handleEnrollSubject = (newSub) => {
+    const existingIndex = subjects.findIndex((s) => s.code === newSub.code);
+    if (existingIndex !== -1) {
+      triggerToast(`Subject ${newSub.code} is already in your enrolled list.`);
+      return;
+    }
+    const updated = [...subjects, newSub];
+    persistSubjects(updated);
+    triggerToast(`Added ${newSub.code} to your subjects!`);
+  };
+
+  const handleEnrollAsBacklog = (sub) => {
+    const existingIndex = subjects.findIndex((s) => s.code === sub.code);
+    if (existingIndex !== -1) {
+      triggerToast(`Subject ${sub.code} is already in your enrolled list.`);
+      return;
+    }
+    const yearNum = Math.ceil((sub.semesterNum || 1) / 2);
+    const semName = sub.semesterName || sub.semester || `Semester ${sub.semesterNum || 1}`;
+    const newSub = {
+      id: sub.id || `SUB-${sub.code.replace(/[^a-zA-Z0-9]/g, '')}`,
+      code: sub.code,
+      name: sub.name,
+      course: profile.course || 'Bachelor of Computer Applications (BCA)',
+      academicYear: `${yearNum === 1 ? '1st' : yearNum === 2 ? '2nd' : yearNum === 3 ? '3rd' : '4th'} Year`,
+      semester: semName,
+      semesterNum: sub.semesterNum || 1,
+      semesterType: (sub.semesterNum || 1) % 2 !== 0 ? 'Odd' : 'Even',
+      type: sub.type || 'Core',
+      faculty: sub.faculty || 'Department Professor',
+      enrollmentType: 'Active Backlog Paper',
+      isRepeat: true,
+      isBacklog: true,
+      backlogReason: sub.backlogReason || 'Repeat due to Marks',
+      reasonCategory: sub.reasonCategory || 'Repeat due to Marks',
+      otherReason: sub.otherReason || '',
+      repeatExamStatus: sub.repeatExamStatus || 'Preparing',
+      examType: 'Both',
+      midsemMarks: sub.midsemMarks ?? null,
+      midsemMax: sub.midsemMax || 50,
+      midsemStatus: sub.midsemStatus || (sub.backlogReason?.includes('Attendance') ? 'Attendance Shortfall' : 'Backlog Internal'),
+      endsemMarks: sub.endsemMarks ?? null,
+      endsemMax: sub.endsemMax || 100,
+      endsemStatus: sub.endsemStatus || 'Backlog / Failed (<40)',
+      status: `Active Backlog Paper (${semName})`,
+      isCurrentSemester: false,
+      ...sub
+    };
+    const updated = [...subjects, newSub];
+    persistSubjects(updated);
+    triggerToast(`Added ${sub.code} (${sub.name}) as an Active Backlog Paper!`);
+  };
+
+  const handleEnrollAllForSemester = (newSubsList) => {
+    const updated = [...subjects, ...newSubsList];
+    persistSubjects(updated);
+    triggerToast(`Enrolled ${newSubsList.length} subjects for this semester!`);
+  };
+
   const handleDeleteSubject = (codeOrId) => {
     const updated = subjects.filter((s) => s.code !== codeOrId && s.id !== codeOrId);
     persistSubjects(updated);
     triggerToast(`Subject removed from your enrolled list.`);
   };
 
-  const handleOpenAddSubject = () => {
-    setEditingSubject(null);
+  const handleClearAllSubjects = () => {
+    persistSubjects([]);
+    try {
+      const currentBL = getBacklogRecords();
+      const filtered = currentBL.filter(
+        (b) => b.usn !== profile.usn && b.studentName !== profile.name
+      );
+      saveBacklogRecords(filtered);
+      setBacklogRecords(filtered);
+    } catch {}
+    triggerToast('All enrolled courses & backlogs cleared. Choose your subjects fresh below!');
+  };
+
+  const handleOpenAddSubject = (initial = null) => {
+    setEditingSubject(initial || null);
     setSubjectModalOpen(true);
   };
 
@@ -378,12 +563,48 @@ export default function StudentDashboard() {
 
   // Teacher Meeting Request Modal
   const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
-  const [requestForm, setRequestForm] = useState({
-    subject: 'BCA301 - Database Management Systems (Prof. Sharma)',
-    meetingSlot: 'Faculty Cabin (Morning Slot: 10:30 AM - 11:30 AM)',
-    type: 'Backlog Doubt Clearance & Subject Guidance',
-    reason: ''
+  const [teachersList, setTeachersList] = useState(() => getTeachers());
+  const [requestForm, setRequestForm] = useState(() => {
+    const defaultTeacher = getTeachers()[0];
+    return {
+      teacher: defaultTeacher ? `${defaultTeacher.name} — ${defaultTeacher.designation} (${defaultTeacher.cabin || 'Faculty Cabin'})` : '',
+      subject: '',
+      meetingSlot: 'Faculty Cabin (Morning Slot: 10:30 AM - 11:30 AM)',
+      type: 'Backlog Doubt Clearance & Subject Guidance',
+      reason: ''
+    };
   });
+
+  // Keep teachersList, requests, and notifications in sync with updates
+  useEffect(() => {
+    const handleTeachersSync = () => {
+      setTeachersList(getTeachers());
+    };
+    const handleRequestsSync = () => {
+      const all = getRequests();
+      setRequests(all.filter((r) => r.usn === profile.usn || r.studentName === profile.name || (!r.usn && !r.studentName)));
+    };
+    const handleNotificationsSync = () => {
+      const all = getNotifications();
+      setNotifications(all.filter((n) => n.targetRole === 'student' || n.targetRole === 'all' || n.targetUsn === profile.usn));
+    };
+
+    window.addEventListener('backtrack_teachers_updated', handleTeachersSync);
+    window.addEventListener('backtrack_requests_updated', handleRequestsSync);
+    window.addEventListener('backtrack_notifications_updated', handleNotificationsSync);
+    window.addEventListener('storage', handleTeachersSync);
+    window.addEventListener('storage', handleRequestsSync);
+    window.addEventListener('storage', handleNotificationsSync);
+
+    return () => {
+      window.removeEventListener('backtrack_teachers_updated', handleTeachersSync);
+      window.removeEventListener('backtrack_requests_updated', handleRequestsSync);
+      window.removeEventListener('backtrack_notifications_updated', handleNotificationsSync);
+      window.removeEventListener('storage', handleTeachersSync);
+      window.removeEventListener('storage', handleRequestsSync);
+      window.removeEventListener('storage', handleNotificationsSync);
+    };
+  }, [profile.usn, profile.name]);
 
   // Toast Feedback
   const [toast, setToast] = useState(null);
@@ -399,21 +620,81 @@ export default function StudentDashboard() {
 
   const handleCreateRequest = (e) => {
     e.preventDefault();
+    if (!requestForm.teacher) {
+      triggerToast('Please select a teacher / faculty member to schedule a meeting.');
+      return;
+    }
+    const teacherShort = requestForm.teacher.split('—')[0].trim();
+    const matchedTeacher = teachersList.find((t) =>
+      requestForm.teacher.includes(t.name) ||
+      (t.empId && requestForm.teacher.includes(t.empId))
+    ) || teachersList[0];
+
     const newReq = {
-      id: `MEET-${Math.floor(100 + Math.random() * 900)}`,
-      subject: requestForm.subject,
+      id: `MEET-${Date.now().toString().slice(-4)}${Math.floor(10 + Math.random() * 90)}`,
+      studentName: profile.name || 'Student',
+      usn: profile.usn || profile.id || 'USN',
+      studentEmail: profile.email || '',
+      course: profile.course || 'Bachelor of Computer Applications (BCA)',
+      semester: profile.semester || 'Semester 1',
+      teacher: requestForm.teacher,
+      teacherName: matchedTeacher?.name || teacherShort,
+      teacherEmpId: matchedTeacher?.empId || '',
+      teacherUsername: matchedTeacher?.username || '',
+      subject: requestForm.subject ? requestForm.subject : 'General Consultation / Not Specified',
       type: requestForm.type,
       slot: requestForm.meetingSlot,
       reason: requestForm.reason,
-      date: 'Today, Oct 13',
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      timestamp: Date.now(),
       status: 'Pending',
-      facultyResponse: `Meeting requested with course instructor for ${requestForm.meetingSlot}.`
+      facultyResponse: `Meeting requested with ${matchedTeacher?.name || teacherShort} for ${requestForm.meetingSlot}.`,
+      remarks: ''
     };
-    setRequests([newReq, ...requests]);
-    triggerToast(`Teacher meeting requested for ${requestForm.subject}!`);
+
+    // Save to persistent requests store & dispatch event
+    addMeetingRequest(newReq);
+    setRequests((prev) => [newReq, ...prev.filter((r) => r.id !== newReq.id)]);
+
+    // Create persistent Notification for the targeted Faculty Member
+    addNotification({
+      id: `NOTIF-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
+      title: `New 1-on-1 Meeting Request`,
+      category: 'Student Requests',
+      body: `${profile.name} (${profile.usn}) requested a 1-on-1 meeting for "${newReq.subject}" at ${newReq.slot}. Note: "${newReq.reason}"`,
+      time: 'Just now',
+      timestamp: Date.now(),
+      read: false,
+      targetRole: 'faculty',
+      targetEmpId: newReq.teacherEmpId,
+      targetTeacherName: newReq.teacherName,
+      targetTeacherUsername: newReq.teacherUsername,
+      studentName: profile.name,
+      usn: profile.usn,
+      requestId: newReq.id
+    });
+
+    // Create confirmation notification for Student
+    addNotification({
+      id: `NOTIF-${Date.now() + 1}-${Math.floor(100 + Math.random() * 900)}`,
+      title: `Meeting Requested: ${newReq.teacherName}`,
+      category: 'Student Requests',
+      body: `Your meeting request with ${newReq.teacherName} for ${newReq.slot} has been submitted. Check this tab for faculty confirmation.`,
+      time: 'Just now',
+      timestamp: Date.now(),
+      read: false,
+      targetRole: 'student',
+      targetUsn: profile.usn,
+      studentName: profile.name,
+      requestId: newReq.id
+    });
+
+    triggerToast(`Meeting requested with ${newReq.teacherName}!`);
     setIsApplyModalOpen(false);
+    const defaultTeacher = teachersList[0] || getTeachers()[0];
     setRequestForm({
-      subject: 'BCA301 - Database Management Systems (Prof. Sharma)',
+      teacher: defaultTeacher ? `${defaultTeacher.name} — ${defaultTeacher.designation} (${defaultTeacher.cabin || 'Faculty Cabin'})` : '',
+      subject: '',
       meetingSlot: 'Faculty Cabin (Morning Slot: 10:30 AM - 11:30 AM)',
       type: 'Backlog Doubt Clearance & Subject Guidance',
       reason: ''
@@ -421,26 +702,26 @@ export default function StudentDashboard() {
   };
 
   return (
-    <div className="flex h-screen bg-[#f6f7fa] font-sans overflow-hidden text-[#181920]">
+    <div className="flex h-screen bg-[#f4f9fd] font-sans overflow-hidden text-[#03045e]">
       {/* Toast Feedback */}
       {toast && (
-        <div className="fixed top-5 right-5 z-50 flex items-center gap-3 bg-[#13141b] text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-slate-700/60 animate-bounce">
-          <Sparkles size={18} className="text-[#f5caa0]" />
+        <div className="fixed top-5 right-5 z-50 flex items-center gap-3 bg-[#03045e] text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-[#0077b6]/40 animate-bounce">
+          <Sparkles size={18} className="text-[#00b4d8]" />
           <span className="text-sm font-medium">{toast}</span>
-          <button onClick={() => setToast(null)} className="ml-2 text-slate-400 hover:text-white">
+          <button onClick={() => setToast(null)} className="ml-2 text-[#90e0ef] hover:text-white">
             <X size={16} />
           </button>
         </div>
       )}
 
       {/* Mobile Top Navbar */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#13141b] text-white flex items-center justify-between px-5 z-40 shadow-lg">
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#03045e] text-white flex items-center justify-between px-5 z-40 shadow-lg">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-white text-[#13141b] flex items-center justify-center font-bold text-sm">
+          <div className="w-8 h-8 rounded-xl bg-white text-[#03045e] flex items-center justify-center font-bold text-sm">
             BT
           </div>
           <span className="font-bold text-lg tracking-tight">BackTrack</span>
-          <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-[#fdeedc]">Student</span>
+          <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-[#caf0f8]">Student</span>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -461,32 +742,32 @@ export default function StudentDashboard() {
       <aside
         className={`
           fixed lg:static top-0 left-0 h-full z-40 w-68
-          bg-[#13141b] text-white flex flex-col justify-between
+          bg-[#03045e] text-white flex flex-col justify-between
           transition-transform duration-300 ease-in-out
           ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-          lg:my-3 lg:ml-3 lg:rounded-[2.2rem] shadow-2xl overflow-hidden
+          lg:my-3 lg:ml-3 lg:rounded-[2.2rem] shadow-2xl shadow-[#03045e]/25 overflow-hidden
         `}
       >
         <div>
           {/* Logo Header */}
-          <div className="p-6 pb-6 flex items-center justify-between border-b border-white/5">
+          <div className="p-6 pb-6 flex items-center justify-between border-b border-white/10">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-white text-[#13141b] flex items-center justify-center font-extrabold text-lg shadow-sm">
+              <div className="w-10 h-10 rounded-2xl bg-white text-[#03045e] flex items-center justify-center font-extrabold text-lg shadow-sm">
                 BT
               </div>
               <div>
                 <h1 className="font-extrabold text-lg tracking-tight flex items-center gap-1.5">
                   BackTrack
-                  <span className="w-2 h-2 rounded-full bg-[#fdeedc] inline-block"></span>
+                  <span className="w-2 h-2 rounded-full bg-[#00b4d8] inline-block animate-pulse"></span>
                 </h1>
-                <p className="text-[11px] text-slate-400 font-medium">Student Academic Portal</p>
+                <p className="text-[11px] text-[#90e0ef] font-medium">Student Academic Portal</p>
               </div>
             </div>
           </div>
 
           {/* Navigation Menu */}
           <div className="px-3 py-6 space-y-1.5">
-            <div className="px-3 pb-2 text-[11px] font-bold tracking-wider text-slate-400 uppercase">Student Hub</div>
+            <div className="px-3 pb-2 text-[11px] font-bold tracking-wider text-[#90e0ef]/70 uppercase">Student Hub</div>
 
             <SidebarBtn
               icon={<LayoutDashboard size={19} />}
@@ -506,7 +787,7 @@ export default function StudentDashboard() {
               label="Backlog Tracking"
               active={activeTab === 'Backlog Tracking'}
               badge={backlogRecords.filter((b) => b.studentName === profile.name || b.usn === profile.usn).length || backlogRecords.length}
-              badgeColor="bg-[#fdeedc] text-[#8a4816]"
+              badgeColor="bg-[#caf0f8] text-[#0077b6]"
               onClick={() => { setActiveTab('Backlog Tracking'); setIsMobileMenuOpen(false); }}
             />
             <SidebarBtn
@@ -533,19 +814,19 @@ export default function StudentDashboard() {
         </div>
 
         {/* Sidebar Footer User Card */}
-        <div className="p-4 border-t border-white/5 bg-[#171822]/60">
-          <div className="p-2.5 rounded-2xl bg-white/5 border border-white/5">
+        <div className="p-4 border-t border-white/10 bg-[#02033b]/60">
+          <div className="p-2.5 rounded-2xl bg-white/5 border border-white/10">
             <button
               onClick={() => { setActiveTab('Settings & Profile'); setIsMobileMenuOpen(false); }}
               className="flex items-center gap-3 text-left hover:opacity-85 transition cursor-pointer w-full min-w-0 group"
               title="Click to view Profile & Settings"
             >
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#fdeedc] to-[#e7f6ee] text-[#13141b] flex items-center justify-center font-bold text-xs shadow-inner shrink-0 group-hover:scale-105 transition-transform">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#caf0f8] to-[#90e0ef] text-[#03045e] flex items-center justify-center font-bold text-xs shadow-inner shrink-0 group-hover:scale-105 transition-transform">
                 {profile.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase() || 'ST'}
               </div>
               <div className="min-w-0 flex-1 overflow-hidden">
-                <p className="text-xs font-bold text-white leading-tight truncate group-hover:text-[#fdeedc] transition-colors">{profile.name}</p>
-                <p className="text-[10px] text-emerald-400 font-medium font-mono truncate">
+                <p className="text-xs font-bold text-white leading-tight truncate group-hover:text-[#caf0f8] transition-colors">{profile.name}</p>
+                <p className="text-[10px] text-[#00b4d8] font-medium font-mono truncate">
                   {profile.usn}
                 </p>
               </div>
@@ -572,16 +853,16 @@ export default function StudentDashboard() {
 
 
         {/* Top Header */}
-        <header className="h-20 px-6 lg:px-8 flex items-center justify-between border-b border-slate-200/60 bg-[#f6f7fa]/90 backdrop-blur-md">
+        <header className="h-20 px-6 lg:px-8 flex items-center justify-between border-b border-[#caf0f8] bg-[#f4f9fd]/90 backdrop-blur-md">
           <div>
-            <h2 className="text-xl lg:text-2xl font-extrabold text-[#181920] tracking-tight">{activeTab}</h2>
-            <p className="text-xs text-slate-500 font-medium">{profile.course} • {profile.semester}</p>
+            <h2 className="text-xl lg:text-2xl font-extrabold text-[#03045e] tracking-tight">{activeTab}</h2>
+            <p className="text-xs text-[#0077b6] font-medium">{profile.course} • {profile.semester}</p>
           </div>
 
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsApplyModalOpen(true)}
-              className="hidden sm:flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-[#13141b] text-white text-xs font-bold hover:bg-slate-800 transition shadow-xs cursor-pointer"
+              className="hidden sm:flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-[#0077b6] text-white text-xs font-bold hover:bg-[#03045e] transition shadow-md shadow-[#0077b6]/20 cursor-pointer"
             >
               <Plus size={15} /> Request Teacher Meet
             </button>
@@ -594,30 +875,6 @@ export default function StudentDashboard() {
               {notifications.some((n) => !n.read) && (
                 <span className="absolute top-2 right-2 w-2 h-2 bg-amber-500 rounded-full"></span>
               )}
-            </button>
-
-            <button
-              onClick={() => setActiveTab('Settings & Profile')}
-              className="flex items-center gap-2.5 pl-2 hover:opacity-85 transition cursor-pointer text-left"
-              title="Click to view Profile & Settings"
-            >
-              <div className="w-9 h-9 rounded-2xl bg-[#13141b] text-white flex items-center justify-center font-bold text-xs shadow-sm">
-                {profile.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase() || 'ST'}
-              </div>
-              <div className="hidden md:block text-left max-w-[130px]">
-                <span className="text-xs font-bold text-slate-900 block leading-tight truncate">{profile.name}</span>
-                <span className="text-[10px] text-slate-400 font-medium font-mono truncate block">{profile.usn}</span>
-              </div>
-            </button>
-
-            {/* Prominent Log Out Header Button */}
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 hover:text-rose-700 font-bold text-xs transition cursor-pointer shadow-xs ml-1"
-              title="Sign Out of Student Account"
-            >
-              <LogOut size={15} />
-              <span className="hidden sm:inline">Log Out</span>
             </button>
           </div>
         </header>
@@ -634,6 +891,11 @@ export default function StudentDashboard() {
               openApplyModal={() => setIsApplyModalOpen(true)}
               onOpenAddSubject={handleOpenAddSubject}
               onOpenEditSubject={handleOpenEditSubject}
+              onEnrollSubject={handleEnrollSubject}
+              onEnrollAsBacklog={handleEnrollAsBacklog}
+              onEnrollAllForSemester={handleEnrollAllForSemester}
+              onRemoveSubject={handleDeleteSubject}
+              onClearAllSubjects={handleClearAllSubjects}
             />
           )}
 
@@ -643,6 +905,10 @@ export default function StudentDashboard() {
               onOpenAddSubject={handleOpenAddSubject}
               onOpenEditSubject={handleOpenEditSubject}
               onDeleteSubject={handleDeleteSubject}
+              onEnrollSubject={handleEnrollSubject}
+              onEnrollAsBacklog={handleEnrollAsBacklog}
+              onEnrollAllForSemester={handleEnrollAllForSemester}
+              onClearAllSubjects={handleClearAllSubjects}
               triggerToast={triggerToast}
               profile={profile}
             />
@@ -689,35 +955,116 @@ export default function StudentDashboard() {
       {/* Modal: Request Teacher Meeting */}
       {isApplyModalOpen && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-[#fdeedc] text-[#8a4816] flex items-center justify-center font-bold">
-                  <Users size={20} />
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 max-h-[92vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-[#fdeedc] text-[#8a4816] flex items-center justify-center font-bold shadow-xs">
+                  <Users size={22} />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-base text-slate-900">Request Teacher Meet</h3>
-                  <p className="text-[11px] text-slate-500">Schedule 1-on-1 cabin consultation & backlog guidance</p>
+                  <h3 className="font-extrabold text-base text-slate-900 tracking-tight">Request Teacher Meet</h3>
+                  <p className="text-[11px] text-slate-500">Schedule 1-on-1 cabin consultation & faculty guidance</p>
                 </div>
               </div>
-              <button onClick={() => setIsApplyModalOpen(false)} className="text-slate-400 hover:text-slate-700 cursor-pointer">
+              <button
+                onClick={() => setIsApplyModalOpen(false)}
+                className="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition cursor-pointer"
+              >
                 <X size={18} />
               </button>
             </div>
 
             <form onSubmit={handleCreateRequest} className="space-y-4 mt-4 text-xs">
+              {/* 1. SELECT TEACHER / FACULTY MEMBER (PRIMARY REQUIRED FIELD) */}
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Select Subject & Faculty</label>
+                <label className="font-bold text-slate-700 flex items-center justify-between mb-1.5">
+                  <span className="flex items-center gap-1.5">
+                    <UserCheck size={13} className="text-[#8a4816]" /> Select Teacher / Faculty Member <span className="text-red-500 font-bold">*</span>
+                  </span>
+                  <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
+                    {teachersList.length} Faculty Members Available
+                  </span>
+                </label>
+                <select
+                  required
+                  value={requestForm.teacher}
+                  onChange={(e) => setRequestForm({ ...requestForm, teacher: e.target.value })}
+                  className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none font-medium focus:bg-white focus:border-[#8a4816] transition text-slate-800"
+                >
+                  <option value="">-- Choose Faculty Member to Meet --</option>
+                  {teachersList.map((t) => (
+                    <option
+                      key={t.id || t.empId || t.name}
+                      value={`${t.name} — ${t.designation} (${t.cabin || 'Faculty Cabin'})`}
+                    >
+                      👨‍🏫 {t.name} — {t.designation} ({t.cabin || 'Faculty Cabin'})
+                    </option>
+                  ))}
+                </select>
+                {requestForm.teacher && (
+                  <p className="text-[10px] text-slate-500 mt-1 pl-1">
+                    Meeting location:{' '}
+                    <span className="font-semibold text-slate-700">
+                      {requestForm.teacher.split('(')[1]?.replace(')', '') || 'Faculty Cabin'}
+                    </span>
+                  </p>
+                )}
+              </div>
+
+              {/* 2. RELATED SUBJECT (OPTIONAL - CAN SKIP) */}
+              <div>
+                <label className="font-bold text-slate-700 flex items-center justify-between mb-1.5">
+                  <span className="flex items-center gap-1.5">
+                    <BookOpen size={13} className="text-slate-500" /> Related Course / Backlog Paper (Optional)
+                  </span>
+                  <span className="text-[10px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200/60">
+                    Optional — Can skip if general query
+                  </span>
+                </label>
                 <select
                   value={requestForm.subject}
                   onChange={(e) => setRequestForm({ ...requestForm, subject: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 outline-none font-medium"
+                  className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none font-medium focus:bg-white focus:border-[#8a4816] transition text-slate-800"
                 >
-                  <option value="">-- Choose Subject (Arranged Semester-Wise) --</option>
+                  <option value="">-- None / General Consultation (Optional) --</option>
+
+                  {/* Active Student Backlogs */}
+                  {subjects.filter((s) => s.isBacklog || s.isRepeat).length > 0 && (
+                    <optgroup label="⚠️ Your Active Backlogs (Priority Guidance)">
+                      {subjects
+                        .filter((s) => s.isBacklog || s.isRepeat)
+                        .map((sub) => (
+                          <option
+                            key={sub.code || sub.id}
+                            value={`${sub.code} - ${sub.name} (Active Backlog)`}
+                          >
+                            ⚠️ {sub.code} — {sub.name} ({sub.semester || `Sem ${sub.semesterNum}`})
+                          </option>
+                        ))}
+                    </optgroup>
+                  )}
+
+                  {/* Regular Enrolled Courses */}
+                  {subjects.filter((s) => !s.isBacklog && !s.isRepeat).length > 0 && (
+                    <optgroup label="📖 Your Currently Enrolled Subjects">
+                      {subjects
+                        .filter((s) => !s.isBacklog && !s.isRepeat)
+                        .map((sub) => (
+                          <option
+                            key={sub.code || sub.id}
+                            value={`${sub.code} - ${sub.name}`}
+                          >
+                            📘 {sub.code} — {sub.name} ({sub.semester || `Sem ${sub.semesterNum}`})
+                          </option>
+                        ))}
+                    </optgroup>
+                  )}
+
+                  {/* Full Curriculum Arranged Semester-Wise */}
                   {[1, 2, 3, 4, 5, 6].map((sem) => (
                     <optgroup
                       key={sem}
-                      label={`Semester ${sem} (${BCA_CURRICULUM.filter((s) => s.semesterNum === sem).length} Subjects)`}
+                      label={`Semester ${sem} Curriculum (${BCA_CURRICULUM.filter((s) => s.semesterNum === sem).length} Subjects)`}
                     >
                       {BCA_CURRICULUM.filter((s) => s.semesterNum === sem).map((sub) => (
                         <option
@@ -732,60 +1079,85 @@ export default function StudentDashboard() {
                 </select>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">Preferred Meeting Slot</label>
-                  <select
-                    value={requestForm.meetingSlot}
-                    onChange={(e) => setRequestForm({ ...requestForm, meetingSlot: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 outline-none font-medium"
-                  >
-                    <option value="Faculty Cabin (Morning Slot: 10:30 AM - 11:30 AM)">Faculty Cabin (Morning: 10:30 - 11:30 AM)</option>
-                    <option value="Faculty Cabin (Afternoon Slot: 02:30 PM - 03:30 PM)">Faculty Cabin (Afternoon: 2:30 - 3:30 PM)</option>
-                    <option value="Department Lab (Evening Slot: 04:00 PM - 05:00 PM)">Department Lab (Evening: 4:00 - 5:00 PM)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">Meeting Purpose</label>
-                  <select
-                    value={requestForm.type}
-                    onChange={(e) => setRequestForm({ ...requestForm, type: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 outline-none font-medium"
-                  >
-                    <option value="Backlog Doubt Clearance & Subject Guidance">Backlog Doubt Clearance & Guidance</option>
-                    <option value="Remedial Coursework & Assignment Verification">Remedial Coursework Verification</option>
-                    <option value="Mid-Semester Retest / Make-up Consultation">Mid-Semester Retest Consultation</option>
-                    <option value="Practical & Lab Examination Preparation">Lab Examination Preparation</option>
-                  </select>
-                </div>
+              {/* 3. PREFERRED MEETING SLOT - FULL WIDTH STACKED */}
+              <div>
+                <label className="font-bold text-slate-700 flex items-center gap-1.5 mb-1.5">
+                  <Clock size={13} className="text-[#8a4816]" /> Preferred Meeting Slot & Cabin Time
+                </label>
+                <select
+                  value={requestForm.meetingSlot}
+                  onChange={(e) => setRequestForm({ ...requestForm, meetingSlot: e.target.value })}
+                  className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none font-medium focus:bg-white focus:border-[#8a4816] transition text-slate-800"
+                >
+                  <option value="Faculty Cabin (Morning Slot: 10:30 AM - 11:30 AM)">
+                    Faculty Cabin (Morning Slot: 10:30 AM - 11:30 AM)
+                  </option>
+                  <option value="Faculty Cabin (Afternoon Slot: 02:30 PM - 03:30 PM)">
+                    Faculty Cabin (Afternoon Slot: 02:30 PM - 03:30 PM)
+                  </option>
+                  <option value="Department Lab (Evening Slot: 04:00 PM - 05:00 PM)">
+                    Department Lab (Evening Slot: 04:00 PM - 05:00 PM)
+                  </option>
+                </select>
               </div>
 
+              {/* 4. CONSULTATION PURPOSE - FULL WIDTH STACKED */}
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Topics to Discuss / Note to Teacher</label>
+                <label className="font-bold text-slate-700 flex items-center gap-1.5 mb-1.5">
+                  <Sparkles size={13} className="text-[#8a4816]" /> Consultation Purpose
+                </label>
+                <select
+                  value={requestForm.type}
+                  onChange={(e) => setRequestForm({ ...requestForm, type: e.target.value })}
+                  className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none font-medium focus:bg-white focus:border-[#8a4816] transition text-slate-800"
+                >
+                  <option value="Backlog Doubt Clearance & Subject Guidance">
+                    Backlog Doubt Clearance & Subject Guidance
+                  </option>
+                  <option value="Remedial Coursework & Assignment Verification">
+                    Remedial Coursework & Assignment Verification
+                  </option>
+                  <option value="Mid-Semester Retest / Make-up Consultation">
+                    Mid-Semester Retest / Make-up Consultation
+                  </option>
+                  <option value="Practical & Lab Examination Preparation">
+                    Practical & Lab Examination Preparation
+                  </option>
+                  <option value="General Academic & Career Mentorship">
+                    General Academic & Career Mentorship
+                  </option>
+                </select>
+              </div>
+
+              {/* 5. TOPICS TO DISCUSS */}
+              <div>
+                <label className="font-bold text-slate-700 flex items-center gap-1.5 mb-1.5">
+                  <MessageSquare size={13} className="text-slate-500" /> Topics to Discuss / Note to Teacher
+                </label>
                 <textarea
                   required
                   rows={3}
                   value={requestForm.reason}
                   onChange={(e) => setRequestForm({ ...requestForm, reason: e.target.value })}
-                  placeholder="Mention topics, syllabus units, or questions you wish to clarify during cabin hours..."
-                  className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:bg-white text-xs"
+                  placeholder="Mention topics, syllabus units, questions, or guidance you wish to discuss during cabin hours..."
+                  className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:bg-white focus:border-[#8a4816] transition text-xs text-slate-800 leading-relaxed"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              {/* 6. ACTION BUTTONS */}
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsApplyModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-bold cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 font-bold transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-[#13141b] text-white font-bold hover:bg-slate-800 transition cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl bg-[#13141b] text-[#f5caa0] hover:text-white font-bold hover:bg-slate-900 transition shadow-sm cursor-pointer"
                 >
-                  Request Meeting Slot
+                  Request Meeting with Teacher
                 </button>
               </div>
             </form>
@@ -825,20 +1197,20 @@ function SidebarBtn({ icon, label, active, badge, onClick }) {
         w-full flex items-center justify-between px-4 py-3 rounded-2xl font-medium text-xs
         transition-all duration-200 cursor-pointer
         ${active
-          ? 'bg-white text-[#13141b] font-bold shadow-md shadow-black/20 translate-x-1'
-          : 'text-slate-400 hover:text-white hover:bg-white/5'
+          ? 'bg-white text-[#03045e] font-bold shadow-md shadow-[#03045e]/25 translate-x-1'
+          : 'text-[#caf0f8]/70 hover:text-white hover:bg-white/10'
         }
       `}
     >
       <div className="flex items-center gap-3">
-        <span className={active ? 'text-[#13141b]' : 'text-slate-400'}>{icon}</span>
+        <span className={active ? 'text-[#0077b6]' : 'text-[#90e0ef]'}>{icon}</span>
         <span>{label}</span>
       </div>
       {badge !== undefined && (
         <span
           className={`
             text-[10px] font-bold px-2 py-0.5 rounded-full
-            ${active ? 'bg-[#13141b] text-white' : 'bg-white/10 text-slate-300'}
+            ${active ? 'bg-[#0077b6] text-white' : 'bg-white/10 text-[#caf0f8]'}
           `}
         >
           {badge}
@@ -859,127 +1231,150 @@ function StudentDashboardTab({
   onNavigate,
   openApplyModal,
   onOpenAddSubject,
-  onOpenEditSubject
+  onOpenEditSubject,
+  onEnrollSubject,
+  onEnrollAsBacklog,
+  onEnrollAllForSemester,
+  onRemoveSubject,
+  onClearAllSubjects
 }) {
   return (
     <div className="space-y-6">
       {/* Welcome Banner */}
-      <div className="w-full bg-white rounded-3xl p-6 lg:p-7 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.03)] relative overflow-hidden flex flex-col justify-between">
+      <div className="w-full bg-white rounded-3xl p-6 lg:p-7 border border-[#caf0f8] shadow-[0_8px_30px_rgba(3,4,94,0.03)] relative overflow-hidden flex flex-col justify-between">
         <div className="relative z-10">
-          <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+          <h3 className="text-2xl font-extrabold text-[#03045e] tracking-tight">
             Welcome back, {profile.name}
           </h3>
-          <p className="text-xs text-slate-500 mt-1 max-w-xl leading-relaxed">
+          <p className="text-xs text-[#0077b6] mt-1 max-w-xl leading-relaxed">
             You are currently enrolled in <strong>{subjects.length} course subjects</strong> for {profile.semester}.
             Your faculty advisor is <strong>{profile.advisor}</strong>. You can customize your subjects and enter your marks anytime!
           </p>
         </div>
 
-        <div className="mt-6 pt-5 border-t border-slate-100 flex flex-wrap items-center gap-4 relative z-10">
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-700 bg-[#f6f7fa] px-3.5 py-2 rounded-xl font-mono">
+        <div className="mt-6 pt-5 border-t border-[#caf0f8] flex flex-wrap items-center gap-4 relative z-10">
+          <div className="flex items-center gap-2 text-xs font-bold text-[#0077b6] bg-[#caf0f8]/70 px-3.5 py-2 rounded-xl font-mono">
             USN: {profile.usn} • {profile.section}
           </div>
           <button
             onClick={() => onNavigate('My Subjects')}
-            className="text-xs font-bold text-[#13141b] bg-[#f4e8fd] hover:bg-[#eccffc] px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+            className="text-xs font-bold text-[#0077b6] bg-[#caf0f8] hover:bg-[#90e0ef] px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-xs"
           >
             My Subjects ({subjects.length}) <ChevronRight size={14} />
           </button>
           <button
             onClick={onOpenAddSubject}
-            className="text-xs font-bold text-[#8a4816] bg-[#fdeedc] hover:bg-[#fadab6] px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+            className="text-xs font-bold text-white bg-[#0077b6] hover:bg-[#03045e] px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-md shadow-[#0077b6]/20"
           >
             <Plus size={14} /> Build / Add Subject & Marks
           </button>
           <button
             onClick={openApplyModal}
-            className="text-xs font-bold text-[#13141b] bg-[#e7f6ee] hover:bg-[#d8f0e2] px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+            className="text-xs font-bold text-[#03045e] bg-[#00b4d8]/20 hover:bg-[#00b4d8]/35 border border-[#00b4d8]/40 px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-xs"
           >
             Request Teacher Meet <ChevronRight size={14} />
           </button>
         </div>
 
-        <div className="absolute right-[-40px] top-[-40px] w-64 h-64 rounded-full bg-gradient-to-br from-[#fdeedc]/60 to-[#f4e8fd]/60 blur-2xl pointer-events-none" />
+        <div className="absolute right-[-40px] top-[-40px] w-64 h-64 rounded-full bg-gradient-to-br from-[#caf0f8] to-[#90e0ef]/50 blur-2xl pointer-events-none" />
       </div>
 
-      {/* 4 Pastel Stat Cards */}
+      {/* 4 Coolors Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {/* Current CGPA - Pastel Mint */}
-        <div className="bg-[#e7f6ee] border border-[#bce8ce] rounded-3xl p-5 shadow-[0_6px_20px_rgba(231,246,238,0.4)]">
+        {/* Current CGPA - Powder Ice to Soft Sky */}
+        <div className="bg-gradient-to-br from-[#caf0f8] to-[#90e0ef]/40 border border-[#90e0ef] rounded-3xl p-5 shadow-[0_6px_20px_rgba(0,119,182,0.1)]">
           <div className="flex items-center justify-between">
-            <div className="w-11 h-11 rounded-2xl bg-[#cceed7] text-[#166534] flex items-center justify-center font-bold shadow-xs">
+            <div className="w-11 h-11 rounded-2xl bg-white text-[#0077b6] flex items-center justify-center font-bold shadow-xs">
               <GraduationCap size={22} />
             </div>
-            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#dcf1e3] text-[#166534]">
-              Distinction
+            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#0077b6] text-white shadow-xs">
+              {Number(profile.cgpa) >= 8.5 ? 'Distinction' : Number(profile.cgpa) >= 6.0 ? 'First Class' : Number(profile.cgpa) > 0 ? 'Passing' : 'Pending Evaluation'}
             </span>
           </div>
           <div className="mt-4">
-            <span className="text-xs font-bold text-[#166534]/80 uppercase tracking-wide">Cumulative CGPA</span>
-            <div className="text-2xl font-black text-[#133722] tracking-tight mt-0.5">{profile.cgpa} / 10.0</div>
-            <p className="text-[11px] text-[#166534] mt-1 font-medium">Ranked #4 in Section A</p>
+            <span className="text-xs font-bold text-[#0077b6]/90 uppercase tracking-wide">Cumulative CGPA</span>
+            <div className="text-2xl font-black text-[#03045e] tracking-tight mt-0.5">
+              {Number(profile.cgpa) > 0 ? `${profile.cgpa} / 10.0` : 'Not Entered'}
+            </div>
+            <p className="text-[11px] text-[#0077b6] mt-1 font-medium">Calculated from End-Sem papers</p>
           </div>
         </div>
 
-        {/* Mid-Semester Performance - Pastel Sky Blue */}
-        <div className="bg-[#e9f2fc] border border-[#bedafb] rounded-3xl p-5 shadow-[0_6px_20px_rgba(233,242,252,0.4)]">
+        {/* Mid-Semester Performance - Soft Sky to Vivid Cyan */}
+        <div className="bg-gradient-to-br from-[#90e0ef]/40 to-[#00b4d8]/20 border border-[#00b4d8]/40 rounded-3xl p-5 shadow-[0_6px_20px_rgba(0,180,216,0.1)]">
           <div className="flex items-center justify-between">
-            <div className="w-11 h-11 rounded-2xl bg-[#d3e5fa] text-[#1e40af] flex items-center justify-center font-bold shadow-xs">
+            <div className="w-11 h-11 rounded-2xl bg-white text-[#00b4d8] flex items-center justify-center font-bold shadow-xs">
               <Sparkles size={22} />
             </div>
-            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#dce9fb] text-[#1e40af]">
-              Evaluated
+            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#00b4d8] text-[#03045e] shadow-xs">
+              {Number(profile.midsemAverage) > 0 ? 'Evaluated' : 'Pending'}
             </span>
           </div>
           <div className="mt-4">
-            <span className="text-xs font-bold text-[#1e40af]/80 uppercase tracking-wide">Mid-Semester Avg</span>
-            <div className="text-2xl font-black text-[#102d54] tracking-tight mt-0.5">{profile.midsemAverage || 88.5}%</div>
-            <p className="text-[11px] text-[#1e40af] mt-1 font-medium">All midsem papers cleared</p>
+            <span className="text-xs font-bold text-[#0077b6]/90 uppercase tracking-wide">Mid-Semester Avg</span>
+            <div className="text-2xl font-black text-[#03045e] tracking-tight mt-0.5">
+              {Number(profile.midsemAverage) > 0 ? `${profile.midsemAverage}%` : 'Not Entered'}
+            </div>
+            <p className="text-[11px] text-[#0077b6] mt-1 font-medium">Internal continuous evaluation</p>
           </div>
         </div>
 
-        {/* Enrolled Subjects - Pastel Lavender */}
+        {/* Enrolled Subjects - Pacific Cyan to Ocean Blue */}
         <div
           onClick={() => onNavigate('My Subjects')}
-          className="bg-[#f4e8fd] border border-[#e8c7fb] rounded-3xl p-5 shadow-[0_6px_20px_rgba(244,232,253,0.4)] cursor-pointer hover:scale-[1.02] transition-transform"
+          className="bg-gradient-to-br from-[#00b4d8]/15 to-[#0077b6]/15 border border-[#0077b6]/30 rounded-3xl p-5 shadow-[0_6px_20px_rgba(0,119,182,0.1)] cursor-pointer hover:scale-[1.02] transition-transform"
         >
           <div className="flex items-center justify-between">
-            <div className="w-11 h-11 rounded-2xl bg-[#eccffc] text-[#6b21a8] flex items-center justify-center font-bold shadow-xs">
+            <div className="w-11 h-11 rounded-2xl bg-white text-[#0077b6] flex items-center justify-center font-bold shadow-xs">
               <BookOpen size={22} />
             </div>
-            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#eedafc] text-[#6b21a8]">
+            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#0077b6]/15 text-[#03045e]">
               {profile.semester}
             </span>
           </div>
           <div className="mt-4">
-            <span className="text-xs font-bold text-[#6b21a8]/80 uppercase tracking-wide">Enrolled Subjects</span>
-            <div className="text-2xl font-black text-[#331342] tracking-tight mt-0.5">{subjects.length} Courses</div>
-            <p className="text-[11px] text-[#6b21a8] mt-1 font-medium">Odd & Even Semester Modules</p>
+            <span className="text-xs font-bold text-[#0077b6]/90 uppercase tracking-wide">Enrolled Subjects</span>
+            <div className="text-2xl font-black text-[#03045e] tracking-tight mt-0.5">{subjects.length} Courses</div>
+            <p className="text-[11px] text-[#0077b6] mt-1 font-medium">Odd & Even Semester Modules</p>
           </div>
         </div>
 
-        {/* Backlog Status - Pastel Peach */}
+        {/* Backlog Status - Deep Navy Gradient Accent */}
         <div
           onClick={() => onNavigate('Backlog Tracking')}
-          className="bg-[#fdeedc] border border-[#fcd7b5] rounded-3xl p-5 shadow-[0_6px_20px_rgba(250,238,220,0.4)] cursor-pointer hover:scale-[1.02] transition-transform"
+          className="bg-gradient-to-br from-[#03045e]/10 to-[#caf0f8]/60 border border-[#90e0ef] rounded-3xl p-5 shadow-[0_6px_20px_rgba(3,4,94,0.08)] cursor-pointer hover:scale-[1.02] transition-transform"
         >
           <div className="flex items-center justify-between">
-            <div className="w-11 h-11 rounded-2xl bg-[#f7d6b8] text-[#8a4816] flex items-center justify-center font-bold shadow-xs">
+            <div className="w-11 h-11 rounded-2xl bg-[#03045e] text-white flex items-center justify-center font-bold shadow-xs">
               <GraduationCap size={22} />
             </div>
-            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#fae3cb] text-[#8a4816]">
+            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#03045e]/15 text-[#03045e]">
               {backlogRecords.filter((b) => b.studentName === profile.name || b.usn === profile.usn).length > 0 ? 'Active' : 'All Clear'}
             </span>
           </div>
           <div className="mt-4">
-            <span className="text-xs font-bold text-[#8a4816]/80 uppercase tracking-wide">Backlog Tracking</span>
-            <div className="text-2xl font-black text-[#2c1d11] tracking-tight mt-0.5">
+            <span className="text-xs font-bold text-[#03045e]/80 uppercase tracking-wide">Backlog Tracking</span>
+            <div className="text-2xl font-black text-[#03045e] tracking-tight mt-0.5">
               {backlogRecords.filter((b) => b.studentName === profile.name || b.usn === profile.usn).length || backlogRecords.length} Subjects
             </div>
-            <p className="text-[11px] text-[#8a4816] mt-1 font-medium">Click to update teacher progress</p>
+            <p className="text-[11px] text-[#0077b6] mt-1 font-medium">Click to update teacher progress</p>
           </div>
         </div>
       </div>
+
+      {/* Space to Select Subjects as per Semester & Enter Details */}
+      <SemesterSubjectSelector
+        enrolledSubjects={subjects}
+        currentSemester={profile.semester}
+        studentCourse={profile.course}
+        onEnrollSubject={onEnrollSubject}
+        onEnrollAsBacklog={onEnrollAsBacklog}
+        onEnrollAllForSemester={onEnrollAllForSemester}
+        onRemoveSubject={onRemoveSubject}
+        onEditSubject={onOpenEditSubject}
+        onOpenCustomModal={onOpenAddSubject}
+        onClearAllSubjects={onClearAllSubjects}
+      />
 
       {/* Subjects Overview & Teacher Meetings Status */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -987,14 +1382,14 @@ function StudentDashboardTab({
           <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
             <div>
               <h4 className="text-base font-extrabold text-slate-900 tracking-tight">Your Enrolled Courses</h4>
-              <p className="text-xs text-slate-500">Mid-Semester evaluation and End-Semester exam standing</p>
+              <p className="text-xs text-slate-500">Mid-Semester evaluation, End-Semester exam standing, and repeat paper progress</p>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={onOpenAddSubject}
                 className="text-xs font-bold text-[#8a4816] bg-[#fdeedc] hover:bg-[#fadab6] px-3 py-1.5 rounded-xl transition flex items-center gap-1 cursor-pointer shadow-xs"
               >
-                <Plus size={13} /> Add / Enter Marks
+                <Plus size={13} /> Add Custom / Enter Marks
               </button>
               <button onClick={() => onNavigate('My Subjects')} className="text-xs font-bold text-slate-600 hover:text-slate-900 hover:underline">
                 View all details
@@ -1004,34 +1399,49 @@ function StudentDashboardTab({
 
           <div className="space-y-3">
             {subjects.length === 0 ? (
-              <div className="p-8 text-center bg-[#fbfbfd] rounded-2xl border border-slate-100">
-                <p className="text-xs text-slate-400">No courses in your profile yet.</p>
+              <div className="p-8 text-center bg-[#fbfbfd] rounded-2xl border border-slate-100 space-y-2">
+                <p className="text-xs text-slate-600 font-bold">No courses enrolled in your profile yet.</p>
+                <p className="text-xs text-slate-400">
+                  Select your semester above and click "+ Choose Subject" or "Select All Available" to build your course list.
+                </p>
                 <button
                   onClick={onOpenAddSubject}
                   className="mt-2 text-xs font-bold text-[#8a4816] hover:underline"
                 >
-                  + Click to add subjects & enter marks
+                  + Or click to enter a custom subject manually
                 </button>
               </div>
             ) : (
               subjects.map((sub) => {
                 const hasMid = sub.midsemMarks !== null && sub.midsemMarks !== undefined;
                 const hasEnd = sub.endsemMarks !== null && sub.endsemMarks !== undefined;
+                const isRepeat = sub.isRepeat || sub.enrollmentType?.includes('Repeat');
+                const isBacklog = sub.isBacklog || sub.endsemStatus?.includes('Backlog');
 
                 return (
-                  <div key={sub.code || sub.id} className="p-4 rounded-2xl bg-[#fbfbfd] border border-slate-100 flex items-center justify-between gap-4">
+                  <div key={sub.code || sub.id} className="p-4 rounded-2xl bg-[#fbfbfd] border border-slate-100 flex items-center justify-between gap-4 flex-wrap sm:flex-nowrap">
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-black text-xs text-slate-900 font-mono">{sub.code}</span>
                         <span className="text-xs font-bold text-slate-700">{sub.name}</span>
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${sub.semesterType === 'Odd' ? 'bg-[#fdeedc] text-[#8a4816]' : 'bg-[#e9f2fc] text-[#1e40af]'}`}>
                           {sub.semester || (sub.semesterType + ' Sem')}
                         </span>
+                        {isRepeat && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-[#8a4816]">
+                            Repeat: {sub.repeatExamStatus || 'Preparing'}
+                          </span>
+                        )}
+                        {isBacklog && !isRepeat && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">
+                            Backlog
+                          </span>
+                        )}
                       </div>
                       <p className="text-[11px] text-slate-400 mt-0.5">{sub.faculty} • {sub.type}</p>
                     </div>
 
-                    <div className="flex items-center gap-3 sm:gap-5">
+                    <div className="flex items-center gap-3 sm:gap-4 shrink-0">
                       <div className="text-right">
                         <span className="text-[10px] text-slate-400 block font-bold">MIDSEM SCORE</span>
                         <span className="text-xs font-extrabold text-emerald-600">
@@ -1047,9 +1457,16 @@ function StudentDashboardTab({
                       <button
                         onClick={() => onOpenEditSubject(sub)}
                         className="p-1.5 rounded-xl bg-slate-100 hover:bg-[#fdeedc] text-slate-500 hover:text-[#8a4816] transition cursor-pointer"
-                        title="Edit Marks"
+                        title="Edit Marks and Standing"
                       >
                         <Edit3 size={13} />
+                      </button>
+                      <button
+                        onClick={() => onRemoveSubject(sub.code)}
+                        className="p-1.5 rounded-xl text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                        title="Remove Subject"
+                      >
+                        <Trash2 size={13} />
                       </button>
                     </div>
                   </div>
@@ -1104,10 +1521,14 @@ function StudentSubjectsTab({
   onOpenAddSubject,
   onOpenEditSubject,
   onDeleteSubject,
+  onEnrollSubject,
+  onEnrollAsBacklog,
+  onEnrollAllForSemester,
+  onClearAllSubjects,
   triggerToast,
   profile
 }) {
-  const [semesterFilter, setSemesterFilter] = useState('All'); // 'All', 'Odd', 'Even', 'Semester 1' ... 'Semester 6'
+  const [semesterFilter, setSemesterFilter] = useState('All'); // 'All', 'Odd', 'Even', 'Semester 1' ... 'Semester 8'
   const [examFilter, setExamFilter] = useState('All'); // 'All', 'Both', 'Mid-Sem', 'End-Sem'
 
   const filteredSubjects = useMemo(() => {
@@ -1137,7 +1558,21 @@ function StudentSubjectsTab({
   const endCount = subjects.filter((s) => s.endsemMarks !== null && s.endsemMarks !== undefined).length;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
+      {/* Semester Course Selection Workspace */}
+      <SemesterSubjectSelector
+        enrolledSubjects={subjects}
+        currentSemester={profile.semester}
+        studentCourse={profile.course}
+        onEnrollSubject={onEnrollSubject}
+        onEnrollAsBacklog={onEnrollAsBacklog}
+        onEnrollAllForSemester={onEnrollAllForSemester}
+        onRemoveSubject={onDeleteSubject}
+        onEditSubject={onOpenEditSubject}
+        onOpenCustomModal={onOpenAddSubject}
+        onClearAllSubjects={onClearAllSubjects}
+      />
+
       {/* Top Banner with Manual Builder Action */}
       <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-[0_6px_20px_rgba(0,0,0,0.02)] flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -1261,6 +1696,16 @@ function StudentSubjectsTab({
                     <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-100">
                       {hasMid && hasEnd ? 'Mid & End-Sem' : hasMid ? 'Mid-Sem' : 'End-Sem'}
                     </span>
+                    {(sub.isRepeat || sub.enrollmentType?.includes('Repeat')) && (
+                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-[#8a4816] font-semibold">
+                        Repeat: {sub.repeatExamStatus || 'Preparing'}
+                      </span>
+                    )}
+                    {(sub.isBacklog || sub.endsemStatus?.includes('Backlog')) && !sub.isRepeat && (
+                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-700">
+                        Backlog
+                      </span>
+                    )}
                   </div>
                   <h4 className="text-base font-extrabold text-slate-900 tracking-tight truncate">{sub.name}</h4>
                   <p className="text-xs text-slate-500 mt-0.5">
@@ -1268,7 +1713,7 @@ function StudentSubjectsTab({
                   </p>
                 </div>
 
-                {/* Middle: Assessment Scores */}
+                {/* Middle: Assessment Scores & Repeat Status */}
                 <div className="flex items-center gap-3 sm:gap-4 shrink-0 flex-wrap">
                   {/* Mid-Sem Box */}
                   <div className="px-3.5 py-2.5 rounded-2xl bg-[#f6f7fa] border border-slate-100 min-w-[130px]">
@@ -1301,6 +1746,21 @@ function StudentSubjectsTab({
                       <span className="text-slate-400 text-xs">/ {sub.endsemMax || 100} Marks</span>
                     </div>
                   </div>
+
+                  {/* Repeat Status Box */}
+                  {(sub.isRepeat || sub.isBacklog || sub.enrollmentType?.includes('Repeat') || sub.endsemStatus?.includes('Backlog')) && (
+                    <div className="px-3.5 py-2.5 rounded-2xl bg-[#fffbf0] border border-[#f5e1a4] min-w-[130px]">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-bold text-[#8a4816] uppercase tracking-wider">Repeat Exam</span>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-100 text-[#8a4816]">
+                          {sub.repeatExamStatus || 'Preparing'}
+                        </span>
+                      </div>
+                      <div className="mt-1 text-slate-800 font-extrabold text-xs">
+                        {sub.isRepeat ? 'Repeat Paper' : 'Backlog Retest'}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Right: Actions */}
@@ -1364,8 +1824,9 @@ function StudentBacklogsTab({
   const [newBacklog, setNewBacklog] = useState({
     subjectCode: 'BCA202',
     subjectName: 'Discrete Mathematics',
-    backlogReason: 'Low Marks in End-Sem',
-    originalMarks: 32,
+    backlogReason: 'Repeat due to Marks',
+    otherReason: '',
+    originalMarks: 0,
     maxMarks: 100,
     studentRemarks: ''
   });
@@ -1414,6 +1875,10 @@ function StudentBacklogsTab({
 
   const handleCreateBacklog = (e) => {
     e.preventDefault();
+    const finalReason = newBacklog.backlogReason === 'Repeat due to Other Reasons'
+      ? (newBacklog.otherReason?.trim() ? `Other: ${newBacklog.otherReason.trim()}` : 'Repeat due to Other Reasons')
+      : newBacklog.backlogReason;
+
     const newRecord = {
       id: `BL-${Date.now().toString().slice(-4)}`,
       studentId: studentProfile.usn || 'STU-01',
@@ -1422,8 +1887,9 @@ function StudentBacklogsTab({
       semester: studentProfile.semester || 'Sem 3 (Odd)',
       subjectCode: newBacklog.subjectCode,
       subjectName: newBacklog.subjectName,
-      backlogReason: newBacklog.backlogReason,
-      originalMarks: Number(newBacklog.originalMarks) || 30,
+      backlogReason: finalReason,
+      reason: finalReason,
+      originalMarks: newBacklog.originalMarks !== '' && newBacklog.originalMarks !== undefined ? Number(newBacklog.originalMarks) : 0,
       maxMarks: 100,
       clearanceStatus: 'In Review',
       metTeacher: false,
@@ -1881,11 +2347,27 @@ function StudentBacklogsTab({
                   onChange={(e) => setNewBacklog({ ...newBacklog, backlogReason: e.target.value })}
                   className="w-full p-2.5 rounded-xl bg-[#f6f7fa] border border-slate-200 outline-none font-medium"
                 >
-                  <option value="Low Marks in End-Sem">Low Marks in End-Sem</option>
-                  <option value="Attendance Shortage">Attendance Shortage</option>
-                  <option value="Missed Internal Exam">Missed Internal Exam</option>
+                  <option value="Repeat due to Attendance">Repeat due to Attendance</option>
+                  <option value="Repeat due to Marks">Repeat due to Marks</option>
+                  <option value="Repeat due to Other Reasons">Repeat due to Other Reasons</option>
                 </select>
               </div>
+
+              {newBacklog.backlogReason === 'Repeat due to Other Reasons' && (
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block mb-1">
+                    Specify Reason for Backlog (Other) <span className="text-rose-500">*</span>
+                  </label>
+                  <textarea
+                    rows={2}
+                    required
+                    value={newBacklog.otherReason || ''}
+                    onChange={(e) => setNewBacklog({ ...newBacklog, otherReason: e.target.value })}
+                    placeholder="Write reason of giving backlog in others..."
+                    className="w-full p-2.5 rounded-xl bg-white border border-amber-300 text-xs text-slate-900 outline-none focus:border-amber-500"
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="font-bold text-slate-700 block mb-1">Initial Remarks / Plan</label>
@@ -2058,14 +2540,21 @@ function StudentRequestsTab({ requests, openApplyModal }) {
                     {r.slot}
                   </span>
                 )}
+                {r.teacher && (
+                  <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200/60 flex items-center gap-1">
+                    <span>👨‍🏫</span> {r.teacher.split('—')[0].trim()}
+                  </span>
+                )}
                 {r.semesterCycle && (
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${r.semesterCycle.includes('Odd') ? 'bg-[#fdeedc] text-[#8a4816]' : 'bg-[#e9f2fc] text-[#1e40af]'}`}>
                     {r.semesterCycle}
                   </span>
                 )}
-                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700">
-                  {r.subject}
-                </span>
+                {r.subject && r.subject !== 'General Consultation / Not Specified' && (
+                  <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                    📚 {r.subject}
+                  </span>
+                )}
                 <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${r.status === 'Approved' ? 'bg-[#e7f6ee] text-[#166534]' : 'bg-amber-50 text-amber-700'}`}>
                   {r.status}
                 </span>
@@ -2099,7 +2588,17 @@ function StudentRequestsTab({ requests, openApplyModal }) {
 // =============================================================
 function StudentNotificationsTab({ notifications, setNotifications, triggerToast }) {
   const markAllRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    const updated = notifications.map((n) => ({ ...n, read: true }));
+    setNotifications(updated);
+    try {
+      const allNotifs = getNotifications();
+      const updatedAll = allNotifs.map((n) =>
+        n.targetRole === 'student' || n.targetUsn === (notifications[0]?.targetUsn || '')
+          ? { ...n, read: true }
+          : n
+      );
+      saveNotifications(updatedAll);
+    } catch {}
     triggerToast('All announcements marked as read!');
   };
 
@@ -2172,7 +2671,8 @@ function StudentProfileSettingsTab({ profile, setProfile, setSubjects, triggerTo
     if (year === '1st Year') return ['Semester 1', 'Semester 2'];
     if (year === '2nd Year') return ['Semester 3', 'Semester 4'];
     if (year === '3rd Year') return ['Semester 5', 'Semester 6'];
-    return ['Semester 1', 'Semester 2', 'Semester 3', 'Semester 4', 'Semester 5', 'Semester 6'];
+    if (year === '4th Year') return ['Semester 7', 'Semester 8'];
+    return ['Semester 1', 'Semester 2', 'Semester 3', 'Semester 4', 'Semester 5', 'Semester 6', 'Semester 7', 'Semester 8'];
   };
 
   const handleYearChange = (newYear) => {
@@ -2183,6 +2683,8 @@ function StudentProfileSettingsTab({ profile, setProfile, setSubjects, triggerTo
       nextSem = 'Semester 3';
     } else if (newYear === '3rd Year' && !['Semester 5', 'Semester 6'].includes(nextSem)) {
       nextSem = 'Semester 5';
+    } else if (newYear === '4th Year' && !['Semester 7', 'Semester 8'].includes(nextSem)) {
+      nextSem = 'Semester 7';
     }
     setProfileForm({ ...profileForm, academicYear: newYear, semester: nextSem });
   };
@@ -2346,7 +2848,8 @@ function StudentProfileSettingsTab({ profile, setProfile, setSubjects, triggerTo
               >
                 <option value="1st Year">1st Year (Freshman)</option>
                 <option value="2nd Year">2nd Year (Sophomore)</option>
-                <option value="3rd Year">3rd Year (Final / Senior)</option>
+                <option value="3rd Year">3rd Year (Junior)</option>
+                <option value="4th Year">4th Year (Final Year)</option>
               </select>
             </div>
             <div>

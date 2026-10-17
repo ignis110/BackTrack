@@ -338,11 +338,11 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="flex h-screen bg-[#f6f7fa] font-sans overflow-hidden text-[#181920]">
+    <div className="flex h-screen bg-[#f4f9fd] font-sans overflow-hidden text-[#03045e]">
       {/* Toast Notification */}
       {notification && (
-        <div className="fixed top-5 right-5 z-50 flex items-center gap-3 bg-[#13141b] text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-slate-700/60 animate-bounce">
-          <Sparkles size={18} className="text-[#f5caa0]" />
+        <div className="fixed top-5 right-5 z-50 flex items-center gap-3 bg-[#03045e] text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-[#0077b6]/40 animate-bounce">
+          <Sparkles size={18} className="text-[#00b4d8]" />
           <span className="text-sm font-medium">{notification.msg}</span>
           <button onClick={() => setNotification(null)} className="ml-2 text-slate-400 hover:text-white">
             <X size={16} />
@@ -351,13 +351,13 @@ export default function AdminDashboard() {
       )}
 
       {/* Mobile Top Navbar */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#13141b] text-white flex items-center justify-between px-5 z-40 shadow-lg">
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#03045e] text-white flex items-center justify-between px-5 z-40 shadow-lg">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-white text-[#13141b] flex items-center justify-center font-bold text-sm">
+          <div className="w-8 h-8 rounded-xl bg-white text-[#03045e] flex items-center justify-center font-bold text-sm">
             BT
           </div>
           <span className="font-bold text-lg tracking-tight">BackTrack</span>
-          <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-[#f5caa0]">Admin</span>
+          <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-[#caf0f8]">Admin</span>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -378,25 +378,25 @@ export default function AdminDashboard() {
       <aside
         className={`
           fixed lg:static top-0 left-0 h-full z-40 w-68
-          bg-[#13141b] text-white flex flex-col justify-between
+          bg-[#03045e] text-white flex flex-col justify-between
           transition-transform duration-300 ease-in-out
           ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-          lg:my-3 lg:ml-3 lg:rounded-[2.2rem] shadow-2xl overflow-hidden
+          lg:my-3 lg:ml-3 lg:rounded-[2.2rem] shadow-2xl shadow-[#03045e]/25 overflow-hidden
         `}
       >
         <div>
           {/* Logo / Brand Header */}
           <div className="p-6 pb-6 flex items-center justify-between border-b border-white/5">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-white text-[#13141b] flex items-center justify-center font-extrabold text-lg shadow-sm">
+              <div className="w-10 h-10 rounded-2xl bg-white text-[#03045e] flex items-center justify-center font-extrabold text-lg shadow-sm">
                 BT
               </div>
               <div>
                 <h1 className="font-extrabold text-lg tracking-tight flex items-center gap-1.5">
                   BackTrack
-                  <span className="w-2 h-2 rounded-full bg-[#f5caa0] inline-block"></span>
+                  <span className="w-2 h-2 rounded-full bg-[#00b4d8] inline-block"></span>
                 </h1>
-                <p className="text-[11px] text-slate-400 font-medium">Academic & Backlog Ops</p>
+                <p className="text-[11px] text-[#90e0ef]/70 font-medium">Academic & Backlog Ops</p>
               </div>
             </div>
           </div>
@@ -456,20 +456,20 @@ export default function AdminDashboard() {
         </div>
 
         {/* Sidebar Footer User Card */}
-        <div className="p-4 border-t border-white/5 bg-[#171822]/60">
+        <div className="p-4 border-t border-white/5 bg-[#02033b]/60">
           <div className="p-2.5 rounded-2xl bg-white/5 border border-white/5">
             <button
               onClick={() => { setActiveTab('Profile & Settings'); setIsMobileMenuOpen(false); }}
               className="flex items-center gap-3 text-left hover:opacity-85 transition cursor-pointer w-full min-w-0 group"
               title="Click to view & edit your Admin Profile"
             >
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#f5caa0] to-[#f4e6fc] text-[#13141b] flex items-center justify-center font-bold text-xs shadow-inner shrink-0 group-hover:scale-105 transition-transform">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#caf0f8] to-[#90e0ef] text-[#03045e] flex items-center justify-center font-bold text-xs shadow-inner shrink-0 group-hover:scale-105 transition-transform">
                 {adminUser.name.slice(0, 2).toUpperCase()}
               </div>
               <div className="min-w-0 flex-1 overflow-hidden">
-                <p className="text-xs font-bold text-white leading-tight truncate group-hover:text-[#f5caa0] transition-colors">{adminUser.name}</p>
-                <p className="text-[10px] text-emerald-400 flex items-center gap-1 font-medium font-mono truncate">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> {adminUser.id}
+                <p className="text-xs font-bold text-white leading-tight truncate group-hover:text-[#caf0f8] transition-colors">{adminUser.name}</p>
+                <p className="text-[10px] text-[#00b4d8] flex items-center gap-1 font-medium font-mono truncate">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#00b4d8]"></span> {adminUser.id}
                 </p>
               </div>
             </button>
@@ -493,9 +493,9 @@ export default function AdminDashboard() {
       {/* Main App Content Area */}
       <main className="flex-1 flex flex-col overflow-hidden pt-16 lg:pt-0">
         {/* Top Header Bar */}
-        <header className="h-20 px-6 lg:px-8 flex items-center justify-between border-b border-slate-200/60 bg-[#f6f7fa]/90 backdrop-blur-md">
+        <header className="h-20 px-6 lg:px-8 flex items-center justify-between border-b border-[#caf0f8] bg-[#f4f9fd]/90 backdrop-blur-md">
           <div>
-            <h2 className="text-xl lg:text-2xl font-extrabold text-[#181920] tracking-tight">{activeTab}</h2>
+            <h2 className="text-xl lg:text-2xl font-extrabold text-[#03045e] tracking-tight">{activeTab}</h2>
             <p className="text-xs text-slate-500 font-medium">BackTrack University Administration Portal</p>
           </div>
 
@@ -521,8 +521,8 @@ export default function AdminDashboard() {
             </button>
 
             {/* Quick Pill Status */}
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-slate-200/80 shadow-xs text-xs font-medium text-slate-600">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-slate-200/80 shadow-xs text-xs font-medium text-[#03045e]">
+              <span className="w-2 h-2 rounded-full bg-[#00b4d8] animate-pulse"></span>
               Term: Spring 2026
             </div>
 
@@ -541,11 +541,11 @@ export default function AdminDashboard() {
               className="flex items-center gap-2.5 pl-2 hover:opacity-85 transition cursor-pointer text-left group"
               title="Click to view & edit your Admin Profile"
             >
-              <div className="w-9 h-9 rounded-2xl bg-[#13141b] text-white flex items-center justify-center font-bold text-xs shadow-sm group-hover:scale-105 transition-transform">
+              <div className="w-9 h-9 rounded-2xl bg-[#03045e] text-white flex items-center justify-center font-bold text-xs shadow-sm group-hover:scale-105 transition-transform">
                 {adminUser.name.slice(0, 1).toUpperCase()}
               </div>
               <div className="hidden md:block text-left max-w-[130px]">
-                <span className="text-xs font-bold text-slate-900 block leading-tight truncate group-hover:text-indigo-600 transition-colors">{adminUser.name}</span>
+                <span className="text-xs font-bold text-[#03045e] block leading-tight truncate group-hover:text-[#0077b6] transition-colors">{adminUser.name}</span>
                 <span className="text-[10px] text-slate-400 font-medium font-mono truncate block">{adminUser.id}</span>
               </div>
             </button>
@@ -642,20 +642,20 @@ function SidebarNavButton({ icon, label, active, badge, onClick }) {
         w-full flex items-center justify-between px-4 py-3 rounded-2xl font-medium text-xs
         transition-all duration-200 cursor-pointer
         ${active
-          ? 'bg-white text-[#13141b] font-bold shadow-md shadow-black/20 translate-x-1'
-          : 'text-slate-400 hover:text-white hover:bg-white/5'
+          ? 'bg-white text-[#03045e] font-bold shadow-md shadow-[#03045e]/25 translate-x-1'
+          : 'text-slate-300 hover:text-white hover:bg-white/10'
         }
       `}
     >
       <div className="flex items-center gap-3">
-        <span className={active ? 'text-[#13141b]' : 'text-slate-400'}>{icon}</span>
+        <span className={active ? 'text-[#0077b6]' : 'text-slate-400'}>{icon}</span>
         <span>{label}</span>
       </div>
       {badge !== undefined && (
         <span
           className={`
             text-[10px] font-bold px-2 py-0.5 rounded-full
-            ${active ? 'bg-[#13141b] text-white' : 'bg-white/10 text-slate-300'}
+            ${active ? 'bg-[#03045e] text-white' : 'bg-white/10 text-slate-300'}
           `}
         >
           {badge}
@@ -1005,12 +1005,12 @@ function DashboardView({ stats, activities, courses, onNavigate }) {
   return (
     <div className="space-y-6">
       {/* Top Welcome Greeting Banner */}
-      <div className="w-full bg-white rounded-3xl p-6 lg:p-7 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.03)] relative overflow-hidden flex flex-col justify-between">
+      <div className="w-full bg-white rounded-3xl p-6 lg:p-7 border border-[#caf0f8] shadow-[0_8px_30px_rgb(0,0,0,0.03)] relative overflow-hidden flex flex-col justify-between">
         <div className="relative z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#fdeedc] text-[#8a4816] text-xs font-semibold mb-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#caf0f8] text-[#0077b6] text-xs font-semibold mb-3">
             <Sparkles size={13} /> BackTrack Portal Overview
           </div>
-          <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+          <h3 className="text-2xl font-extrabold text-[#03045e] tracking-tight">
             Good Morning, Controller Ariel
           </h3>
           <p className="text-xs text-slate-500 mt-1 max-w-xl leading-relaxed">
@@ -1020,109 +1020,109 @@ function DashboardView({ stats, activities, courses, onNavigate }) {
         </div>
 
         <div className="mt-6 pt-5 border-t border-slate-100 flex flex-wrap items-center gap-4 relative z-10">
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-700 bg-[#f6f7fa] px-3.5 py-2 rounded-xl">
-            <Clock size={15} className="text-slate-400" />
-            10:29 AM • Wednesday, Oct 7
+          <div className="flex items-center gap-2 text-xs font-bold text-[#03045e] bg-[#f4f9fd] border border-[#caf0f8] px-3.5 py-2 rounded-xl">
+            <Clock size={15} className="text-[#0077b6]" />
+            10:29 AM • Academic Session 2026
           </div>
           <button
             onClick={() => onNavigate('Users Management')}
-            className="text-xs font-bold text-[#13141b] bg-[#fdeedc] hover:bg-[#fad8ba] px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+            className="text-xs font-bold text-white bg-[#0077b6] hover:bg-[#03045e] px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-md shadow-[#0077b6]/20"
           >
             Manage Users <ChevronRight size={14} />
           </button>
           <button
             onClick={() => onNavigate('Courses & Subjects')}
-            className="text-xs font-bold text-[#13141b] bg-[#f4e8fd] hover:bg-[#eacffc] px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+            className="text-xs font-bold text-[#03045e] bg-[#00b4d8]/20 hover:bg-[#00b4d8]/35 border border-[#00b4d8]/40 px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-xs"
           >
             View Subjects <ChevronRight size={14} />
           </button>
         </div>
 
-        {/* Decorative soft pastel blob background */}
-        <div className="absolute right-[-40px] top-[-40px] w-64 h-64 rounded-full bg-gradient-to-br from-[#fdeedc]/60 to-[#f4e8fd]/60 blur-2xl pointer-events-none" />
+        {/* Decorative soft Coolors blob background */}
+        <div className="absolute right-[-40px] top-[-40px] w-64 h-64 rounded-full bg-gradient-to-br from-[#caf0f8]/70 to-[#90e0ef]/40 blur-2xl pointer-events-none" />
       </div>
 
-      {/* 4 Pastel Stat Cards (Directly matching Peach, Lavender, Mint, Sky Palette) */}
+      {/* 4 Ocean Palette Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {/* Total Students - Pastel Peach */}
+        {/* Total Students - Ocean Palette Card 1 */}
         <div
           onClick={() => onNavigate('Student Management')}
-          className="bg-[#fdeedc] border border-[#fcd7b5] rounded-3xl p-5 shadow-[0_6px_20px_rgba(250,238,220,0.4)] cursor-pointer hover:scale-[1.02] transition-transform"
+          className="bg-gradient-to-br from-[#caf0f8] to-[#90e0ef]/40 border border-[#90e0ef] rounded-3xl p-5 shadow-[0_6px_20px_rgba(0,180,216,0.1)] cursor-pointer hover:scale-[1.02] transition-transform"
         >
           <div className="flex items-center justify-between">
-            <div className="w-11 h-11 rounded-2xl bg-[#f7d6b8] text-[#8a4816] flex items-center justify-center font-bold shadow-xs">
+            <div className="w-11 h-11 rounded-2xl bg-[#0077b6] text-white flex items-center justify-center font-bold shadow-xs">
               <Users size={22} />
             </div>
-            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#fae3cb] text-[#8a4816]">
+            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#0077b6]/15 text-[#0077b6]">
               Active Batch
             </span>
           </div>
           <div className="mt-4">
-            <span className="text-xs font-bold text-[#8a4816]/80 uppercase tracking-wide">Total Students</span>
-            <div className="text-2xl font-black text-[#2c1d11] tracking-tight mt-0.5">{stats.totalStudents}</div>
-            <p className="text-[11px] text-[#8a4816] mt-1 font-medium">Enrolled across 14 degree programs</p>
+            <span className="text-xs font-bold text-[#0077b6] uppercase tracking-wide">Total Students</span>
+            <div className="text-2xl font-black text-[#03045e] tracking-tight mt-0.5">{stats.totalStudents}</div>
+            <p className="text-[11px] text-[#0077b6] mt-1 font-medium">Enrolled across 14 degree programs</p>
           </div>
         </div>
 
-        {/* Total Teachers - Pastel Lavender */}
+        {/* Total Teachers - Ocean Palette Card 2 */}
         <div
           onClick={() => onNavigate('Teacher Management')}
-          className="bg-[#f4e8fd] border border-[#e8c7fb] rounded-3xl p-5 shadow-[0_6px_20px_rgba(244,232,253,0.4)] cursor-pointer hover:scale-[1.02] transition-transform"
+          className="bg-gradient-to-br from-[#90e0ef]/40 to-[#00b4d8]/20 border border-[#00b4d8]/40 rounded-3xl p-5 shadow-[0_6px_20px_rgba(0,180,216,0.1)] cursor-pointer hover:scale-[1.02] transition-transform"
         >
           <div className="flex items-center justify-between">
-            <div className="w-11 h-11 rounded-2xl bg-[#eccffc] text-[#6b21a8] flex items-center justify-center font-bold shadow-xs">
+            <div className="w-11 h-11 rounded-2xl bg-[#00b4d8] text-[#03045e] flex items-center justify-center font-bold shadow-xs">
               <GraduationCap size={22} />
             </div>
-            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#eedafc] text-[#6b21a8]">
+            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#00b4d8] text-[#03045e] shadow-xs">
               Faculty Staff
             </span>
           </div>
           <div className="mt-4">
-            <span className="text-xs font-bold text-[#6b21a8]/80 uppercase tracking-wide">Total Teachers</span>
-            <div className="text-2xl font-black text-[#331342] tracking-tight mt-0.5">{stats.totalTeachers}</div>
-            <p className="text-[11px] text-[#6b21a8] mt-1 font-medium">Average 14.8 teaching hours/wk</p>
+            <span className="text-xs font-bold text-[#03045e]/80 uppercase tracking-wide">Total Teachers</span>
+            <div className="text-2xl font-black text-[#03045e] tracking-tight mt-0.5">{stats.totalTeachers}</div>
+            <p className="text-[11px] text-[#03045e]/80 mt-1 font-medium">Average 14.8 teaching hours/wk</p>
           </div>
         </div>
 
-        {/* Total Courses & Subjects - Pastel Mint */}
+        {/* Total Courses & Subjects - Ocean Palette Card 3 */}
         <div
           onClick={() => onNavigate('Courses & Subjects')}
-          className="bg-[#e7f6ee] border border-[#bce8ce] rounded-3xl p-5 shadow-[0_6px_20px_rgba(231,246,238,0.4)] cursor-pointer hover:scale-[1.02] transition-transform"
+          className="bg-gradient-to-br from-[#00b4d8]/15 to-[#0077b6]/15 border border-[#0077b6]/30 rounded-3xl p-5 shadow-[0_6px_20px_rgba(0,119,182,0.1)] cursor-pointer hover:scale-[1.02] transition-transform"
         >
           <div className="flex items-center justify-between">
-            <div className="w-11 h-11 rounded-2xl bg-[#cceed7] text-[#166534] flex items-center justify-center font-bold shadow-xs">
+            <div className="w-11 h-11 rounded-2xl bg-[#0077b6] text-white flex items-center justify-center font-bold shadow-xs">
               <BookOpen size={22} />
             </div>
-            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#dcf1e3] text-[#166534]">
+            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#0077b6]/20 text-[#03045e]">
               Accredited
             </span>
           </div>
           <div className="mt-4">
-            <span className="text-xs font-bold text-[#166534]/80 uppercase tracking-wide">Courses & Subjects</span>
-            <div className="text-2xl font-black text-[#133722] tracking-tight mt-0.5">
-              {stats.totalCourses} <span className="text-sm font-semibold text-[#166534]">/ {stats.totalSubjects} Sub</span>
+            <span className="text-xs font-bold text-[#0077b6] uppercase tracking-wide">Courses & Subjects</span>
+            <div className="text-2xl font-black text-[#03045e] tracking-tight mt-0.5">
+              {stats.totalCourses} <span className="text-sm font-semibold text-[#0077b6]">/ {stats.totalSubjects} Sub</span>
             </div>
-            <p className="text-[11px] text-[#166534] mt-1 font-medium">Full credit system mapped</p>
+            <p className="text-[11px] text-[#0077b6] mt-1 font-medium">Full credit system mapped</p>
           </div>
         </div>
 
-        {/* Active Backlogs - Pastel Sky Blue */}
+        {/* Active Backlogs - Ocean Palette Card 4 */}
         <div
           onClick={() => onNavigate('Student Management')}
-          className="bg-[#e9f2fc] border border-[#bedafb] rounded-3xl p-5 shadow-[0_6px_20px_rgba(233,242,252,0.4)] cursor-pointer hover:scale-[1.02] transition-transform"
+          className="bg-gradient-to-br from-[#03045e]/10 to-[#caf0f8]/60 border border-[#90e0ef] rounded-3xl p-5 shadow-[0_6px_20px_rgba(3,4,94,0.08)] cursor-pointer hover:scale-[1.02] transition-transform"
         >
           <div className="flex items-center justify-between">
-            <div className="w-11 h-11 rounded-2xl bg-[#d3e5fa] text-[#1e40af] flex items-center justify-center font-bold shadow-xs">
+            <div className="w-11 h-11 rounded-2xl bg-[#03045e] text-white flex items-center justify-center font-bold shadow-xs">
               <AlertCircle size={22} />
             </div>
-            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#dce9fb] text-[#1e40af]">
+            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#03045e]/15 text-[#03045e]">
               Action Needed
             </span>
           </div>
           <div className="mt-4">
-            <span className="text-xs font-bold text-[#1e40af]/80 uppercase tracking-wide">Pending Backlogs</span>
-            <div className="text-2xl font-black text-[#102d54] tracking-tight mt-0.5">{stats.pendingBacklogs}</div>
-            <p className="text-[11px] text-[#1e40af] mt-1 font-medium">42 assigned for re-exam</p>
+            <span className="text-xs font-bold text-[#03045e]/80 uppercase tracking-wide">Pending Backlogs</span>
+            <div className="text-2xl font-black text-[#03045e] tracking-tight mt-0.5">{stats.pendingBacklogs}</div>
+            <p className="text-[11px] text-[#03045e]/80 mt-1 font-medium">42 assigned for re-exam</p>
           </div>
         </div>
       </div>
@@ -2759,8 +2759,8 @@ function StudentManagementView({ students, setStudents, triggerToast }) {
     course: 'BCA',
     semester: 'Semester 1',
     section: 'Section A',
-    cgpa: 8.0,
-    midsemMarks: 40,
+    cgpa: '',
+    midsemMarks: '',
     endsemStatus: 'Eligible',
     status: 'Active'
   });
@@ -2769,8 +2769,8 @@ function StudentManagementView({ students, setStudents, triggerToast }) {
     name: '',
     semester: 'Semester 3',
     section: 'Section A',
-    cgpa: 8.0,
-    midsemMarks: 40,
+    cgpa: '',
+    midsemMarks: '',
     endsemStatus: 'Eligible'
   });
 
@@ -2812,8 +2812,8 @@ function StudentManagementView({ students, setStudents, triggerToast }) {
       course: newStudentForm.course,
       semester: newStudentForm.semester,
       section: newStudentForm.section,
-      cgpa: Number(newStudentForm.cgpa),
-      midsemMarks: Number(newStudentForm.midsemMarks),
+      cgpa: newStudentForm.cgpa ? Number(newStudentForm.cgpa) : 0.0,
+      midsemMarks: (newStudentForm.midsemMarks !== '' && newStudentForm.midsemMarks !== null && newStudentForm.midsemMarks !== undefined) ? Number(newStudentForm.midsemMarks) : null,
       endsemStatus: newStudentForm.endsemStatus,
       status: newStudentForm.status,
       enrolledSubjects: [],
@@ -2829,8 +2829,8 @@ function StudentManagementView({ students, setStudents, triggerToast }) {
       course: 'BCA',
       semester: 'Semester 1',
       section: 'Section A',
-      cgpa: 8.0,
-      midsemMarks: 40,
+      cgpa: '',
+      midsemMarks: '',
       endsemStatus: 'Eligible',
       status: 'Active'
     });
@@ -2849,8 +2849,8 @@ function StudentManagementView({ students, setStudents, triggerToast }) {
       name: s.name,
       semester: s.semester,
       section: s.section,
-      cgpa: s.cgpa,
-      midsemMarks: s.midsemMarks || 40,
+      cgpa: s.cgpa ?? '',
+      midsemMarks: s.midsemMarks !== null && s.midsemMarks !== undefined ? s.midsemMarks : '',
       endsemStatus: s.endsemStatus || 'Eligible'
     });
   };
@@ -2861,7 +2861,12 @@ function StudentManagementView({ students, setStudents, triggerToast }) {
       setStudents((prev) =>
         prev.map((s) =>
           s.id === editingStudent.id
-            ? { ...s, ...editForm, cgpa: Number(editForm.cgpa), midsemMarks: Number(editForm.midsemMarks) }
+            ? {
+                ...s,
+                ...editForm,
+                cgpa: editForm.cgpa ? Number(editForm.cgpa) : 0.0,
+                midsemMarks: (editForm.midsemMarks !== '' && editForm.midsemMarks !== null && editForm.midsemMarks !== undefined) ? Number(editForm.midsemMarks) : null
+              }
             : s
         )
       );
@@ -2984,7 +2989,9 @@ function StudentManagementView({ students, setStudents, triggerToast }) {
                 <div className="mt-3.5 p-2.5 rounded-2xl bg-[#f6f7fa] flex items-center justify-between text-xs">
                   <div>
                     <span className="text-[10px] text-slate-400 font-bold block">MIDSEM EXAM</span>
-                    <span className="font-extrabold text-slate-900">{st.midsemMarks || 40} / 50</span>
+                    <span className="font-extrabold text-slate-900">
+                      {st.midsemMarks !== null && st.midsemMarks !== undefined ? `${st.midsemMarks} / 50` : 'Not Entered'}
+                    </span>
                   </div>
                   <div className="text-right">
                     <span className="text-[10px] text-slate-400 font-bold block">ENDSEM EXAM</span>
@@ -3066,11 +3073,15 @@ function StudentManagementView({ students, setStudents, triggerToast }) {
                 </div>
                 <div className="p-3 bg-[#e7f6ee] rounded-2xl text-[#166534]">
                   <span className="text-[10px] font-bold block">CGPA</span>
-                  <span className="font-extrabold text-xs sm:text-sm">{selectedStudentDetail.cgpa}</span>
+                  <span className="font-extrabold text-xs sm:text-sm">
+                    {selectedStudentDetail.cgpa && Number(selectedStudentDetail.cgpa) > 0 ? selectedStudentDetail.cgpa : 'N/A'}
+                  </span>
                 </div>
                 <div className="p-3 bg-[#e9f2fc] rounded-2xl text-[#1e40af]">
                   <span className="text-[10px] font-bold block">MIDSEM</span>
-                  <span className="font-extrabold text-xs sm:text-sm">{selectedStudentDetail.midsemMarks || 42}/50</span>
+                  <span className="font-extrabold text-xs sm:text-sm">
+                    {selectedStudentDetail.midsemMarks !== null && selectedStudentDetail.midsemMarks !== undefined ? `${selectedStudentDetail.midsemMarks} / 50` : 'Not Entered'}
+                  </span>
                 </div>
                 <div className="p-3 bg-[#f4e8fd] rounded-2xl text-[#6b21a8]">
                   <span className="text-[10px] font-bold block">ENDSEM</span>

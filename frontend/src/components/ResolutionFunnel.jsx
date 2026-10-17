@@ -67,14 +67,14 @@ export function RecordFunnelStepper({ record }) {
                 className={`
                   w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300
                   ${isDone ? 'bg-emerald-600 text-white ring-4 ring-emerald-50' : ''}
-                  ${isCurrent ? 'bg-[#8a4816] text-white ring-4 ring-[#fdeedc] animate-pulse' : ''}
+                  ${isCurrent ? 'bg-[#0077b6] text-white ring-4 ring-[#caf0f8] animate-pulse' : ''}
                   ${!isDone && !isCurrent ? 'bg-slate-100 text-slate-400 border border-slate-200' : ''}
                 `}
               >
                 {isDone ? <Check size={13} strokeWidth={3} /> : step.icon}
               </div>
               <span className={`text-[10px] font-extrabold mt-1.5 leading-tight ${
-                isDone ? 'text-emerald-800' : isCurrent ? 'text-[#8a4816]' : 'text-slate-400'
+                isDone ? 'text-emerald-800' : isCurrent ? 'text-[#0077b6]' : 'text-slate-400'
               }`}>
                 {step.label}
               </span>
@@ -104,9 +104,9 @@ export function ResolutionFunnelSummary({ records = [], activeFilter = null, onF
       name: '1. Enrolled Backlogs',
       count: total,
       pct: total === 0 ? 0 : 100,
-      color: 'bg-slate-900',
-      textColor: 'text-slate-900',
-      bgLight: 'bg-slate-100',
+      color: 'bg-[#03045e]',
+      textColor: 'text-[#03045e]',
+      bgLight: 'bg-[#03045e]/10',
       desc: 'Total active backlog papers'
     },
     {
@@ -114,9 +114,9 @@ export function ResolutionFunnelSummary({ records = [], activeFilter = null, onF
       name: '2. Met Faculty Advisor',
       count: metTeacher,
       pct: total === 0 ? 0 : Math.round((metTeacher / total) * 100),
-      color: 'bg-[#8a4816]',
-      textColor: 'text-[#8a4816]',
-      bgLight: 'bg-[#fdeedc]',
+      color: 'bg-[#0077b6]',
+      textColor: 'text-[#0077b6]',
+      bgLight: 'bg-[#caf0f8]',
       desc: 'Completed one-on-one cabin consultation'
     },
     {
@@ -124,9 +124,9 @@ export function ResolutionFunnelSummary({ records = [], activeFilter = null, onF
       name: '3. Assignments Verified',
       count: assignmentsDone,
       pct: total === 0 ? 0 : Math.round((assignmentsDone / total) * 100),
-      color: 'bg-indigo-600',
-      textColor: 'text-indigo-600',
-      bgLight: 'bg-indigo-50',
+      color: 'bg-[#00b4d8]',
+      textColor: 'text-[#0077b6]',
+      bgLight: 'bg-[#00b4d8]/20',
       desc: 'Submitted remedial coursework'
     },
     {
@@ -134,9 +134,9 @@ export function ResolutionFunnelSummary({ records = [], activeFilter = null, onF
       name: '4. Repeat Exam Appeared',
       count: examAppeared,
       pct: total === 0 ? 0 : Math.round((examAppeared / total) * 100),
-      color: 'bg-blue-600',
-      textColor: 'text-blue-600',
-      bgLight: 'bg-blue-50',
+      color: 'bg-[#90e0ef]',
+      textColor: 'text-[#03045e]',
+      bgLight: 'bg-[#caf0f8]',
       desc: 'Appeared for scheduled re-exam'
     },
     {
@@ -146,18 +146,18 @@ export function ResolutionFunnelSummary({ records = [], activeFilter = null, onF
       pct: total === 0 ? 0 : Math.round((cleared / total) * 100),
       color: 'bg-emerald-600',
       textColor: 'text-emerald-700',
-      bgLight: 'bg-[#e7f6ee]',
+      bgLight: 'bg-[#caf0f8]',
       desc: 'Endorsed and certified cleared'
     }
   ];
 
   return (
-    <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] space-y-5">
+    <div className="bg-white rounded-3xl p-6 border border-[#caf0f8] shadow-[0_8px_30px_rgb(0,0,0,0.02)] space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#8a4816]"></span>
-            <h3 className="font-extrabold text-base text-slate-900">Backlog Resolution Funnel</h3>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#0077b6]"></span>
+            <h3 className="font-extrabold text-base text-[#03045e]">Backlog Resolution Funnel</h3>
           </div>
           <p className="text-xs text-slate-500">
             Real-time stage-by-stage progression from backlog registration to official clearance.

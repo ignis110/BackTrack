@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { X, BookOpen, Sparkles, Check, AlertCircle } from 'lucide-react';
+import { X, BookOpen, Sparkles, Check, AlertCircle, RefreshCw, Award } from 'lucide-react';
 import { BCA_CURRICULUM } from '../utils/backlogStore';
 
 export default function SubjectMarksModal({
@@ -23,6 +23,20 @@ export default function SubjectMarksModal({
   const [type, setType] = useState(initialSubject?.type || 'Core');
   const [faculty, setFaculty] = useState(initialSubject?.faculty || 'Department Professor');
 
+  // Academic standing / Repeat Exam status
+  const [enrollmentType, setEnrollmentType] = useState(
+    initialSubject?.enrollmentType || (initialSubject?.isRepeat ? 'Repeat / Retest Examination' : 'Regular')
+  );
+  const [repeatExamStatus, setRepeatExamStatus] = useState(
+    initialSubject?.repeatExamStatus || 'Preparing'
+  );
+  const [backlogReason, setBacklogReason] = useState(
+    initialSubject?.reasonCategory || (initialSubject?.backlogReason?.includes('Attendance') ? 'Repeat due to Attendance' : initialSubject?.backlogReason?.startsWith('Other:') ? 'Repeat due to Other Reasons' : 'Repeat due to Marks')
+  );
+  const [otherReasonText, setOtherReasonText] = useState(
+    initialSubject?.otherReason || (initialSubject?.backlogReason?.startsWith('Other: ') ? initialSubject.backlogReason.replace('Other: ', '') : '')
+  );
+
   // Examination Type dropdown: 'Both', 'Mid-Sem', 'End-Sem'
   const [examType, setExamType] = useState(() => {
     if (initialSubject?.examType) return initialSubject.examType;
@@ -35,28 +49,32 @@ export default function SubjectMarksModal({
     return 'Both';
   });
 
-  // Marks inputs
+  // Marks inputs: start empty so student enters their own marks (or 0)
   const [midsemMarks, setMidsemMarks] = useState(
     initialSubject?.midsemMarks !== null && initialSubject?.midsemMarks !== undefined
       ? initialSubject.midsemMarks
-      : 40
+      : ''
   );
   const [midsemMax, setMidsemMax] = useState(initialSubject?.midsemMax || 50);
-  const [midsemStatus, setMidsemStatus] = useState(initialSubject?.midsemStatus || 'Passed');
+  const [midsemStatus, setMidsemStatus] = useState(
+    initialSubject?.midsemStatus || (initialSubject?.isBacklog ? 'Backlog / Needs Retest' : 'Pending Result')
+  );
 
   const [endsemMarks, setEndsemMarks] = useState(
     initialSubject?.endsemMarks !== null && initialSubject?.endsemMarks !== undefined
       ? initialSubject.endsemMarks
-      : 82
+      : ''
   );
   const [endsemMax, setEndsemMax] = useState(initialSubject?.endsemMax || 100);
-  const [endsemStatus, setEndsemStatus] = useState(initialSubject?.endsemStatus || 'Eligible');
+  const [endsemStatus, setEndsemStatus] = useState(
+    initialSubject?.endsemStatus || (initialSubject?.isBacklog ? 'Backlog / Failed' : 'Pending')
+  );
 
   const [errorMsg, setErrorMsg] = useState('');
 
   // Curriculum subjects matching the currently selected semester
   const semesterSubjects = useMemo(() => {
-    const match = semester.match(/([1-6])/);
+    const match = semester.match(/([1-8])/);
     const semNum = match ? parseInt(match[1], 10) : 1;
     return BCA_CURRICULUM.filter((s) => s.semesterNum === semNum);
   }, [semester]);
@@ -64,7 +82,7 @@ export default function SubjectMarksModal({
   // Handle changing semester
   const handleSemesterChange = (newSem) => {
     setSemester(newSem);
-    const match = newSem.match(/([1-6])/);
+    const match = newSem.match(/([1-8])/);
     const semNum = match ? parseInt(match[1], 10) : 1;
     const subs = BCA_CURRICULUM.filter((s) => s.semesterNum === semNum);
     if (subs.length > 0) {
@@ -115,57 +133,82 @@ export default function SubjectMarksModal({
       return;
     }
 
-    const midNum = Number(midsemMarks);
+    const isMidFilled = midsemMarks !== '' && midsemMarks !== null && midsemMarks !== undefined;
+    const isEndFilled = endsemMarks !== '' && endsemMarks !== null && endsemMarks !== undefined;
+    const midNum = isMidFilled ? Number(midsemMarks) : null;
     const midMaxNum = Number(midsemMax) || 50;
-    const endNum = Number(endsemMarks);
+    const endNum = isEndFilled ? Number(endsemMarks) : null;
     const endMaxNum = Number(endsemMax) || 100;
 
-    if (examType === 'Mid-Sem' || examType === 'Both') {
-      if (midNum < 0 || midNum > midMaxNum) {
-        setErrorMsg(`Mid-Semester marks must be between 0 and ${midMaxNum}.`);
-        return;
-      }
+    if (isMidFilled && (midNum < 0 || midNum > midMaxNum)) {
+      setErrorMsg(`Mid-Semester marks must be between 0 and ${midMaxNum}.`);
+      return;
     }
 
-    if (examType === 'End-Sem' || examType === 'Both') {
-      if (endNum < 0 || endNum > endMaxNum) {
-        setErrorMsg(`End-Semester marks must be between 0 and ${endMaxNum}.`);
-        return;
-      }
+    if (isEndFilled && (endNum < 0 || endNum > endMaxNum)) {
+      setErrorMsg(`End-Semester marks must be between 0 and ${endMaxNum}.`);
+      return;
     }
 
-    const match = semester.match(/([1-6])/);
+    const match = semester.match(/([1-8])/);
     const semNum = match ? parseInt(match[1], 10) : 1;
     const yearNum = Math.ceil(semNum / 2);
 
     const hasMid = examType === 'Mid-Sem' || examType === 'Both';
     const hasEnd = examType === 'End-Sem' || examType === 'Both';
 
+    const isRepeat = enrollmentType === 'Repeat / Retest Examination';
+    const isBacklog =
+      enrollmentType === 'Active Backlog Paper' ||
+      enrollmentType === 'Backlog Paper' ||
+      endsemStatus?.includes('Backlog') ||
+      endsemStatus?.includes('Failed') ||
+      endsemStatus?.includes('Repeat') ||
+      midsemStatus?.includes('Backlog') ||
+      (isEndFilled && endNum < 40);
+
+    const finalReason = isBacklog || isRepeat
+      ? (backlogReason === 'Repeat due to Other Reasons'
+          ? (otherReasonText.trim() ? `Other: ${otherReasonText.trim()}` : 'Repeat due to Other Reasons')
+          : backlogReason)
+      : null;
+
     const subjectData = {
       id: initialSubject?.id || `SUB-${code.replace(/[^a-zA-Z0-9]/g, '') || Date.now()}`,
       code: code.trim(),
       name: name.trim(),
       course: studentCourse,
-      academicYear: `${yearNum === 1 ? '1st' : yearNum === 2 ? '2nd' : '3rd'} Year`,
+      academicYear: `${yearNum === 1 ? '1st' : yearNum === 2 ? '2nd' : yearNum === 3 ? '3rd' : '4th'} Year`,
       semester: semester,
       semesterNum: semNum,
       semesterType: semNum % 2 !== 0 ? 'Odd' : 'Even',
       type: type || 'Core',
       faculty: faculty || 'Department Professor',
+      enrollmentType: isBacklog ? 'Active Backlog Paper' : isRepeat ? 'Repeat / Retest Examination' : 'Regular',
+      isRepeat: isRepeat || isBacklog,
+      isBacklog: isBacklog,
+      backlogReason: finalReason,
+      reasonCategory: backlogReason,
+      otherReason: otherReasonText.trim(),
+      repeatExamStatus: isRepeat || isBacklog ? repeatExamStatus : 'Not Applicable',
       examType: examType,
       midsemMarks: hasMid ? midNum : null,
       midsemMax: hasMid ? midMaxNum : 50,
-      midsemStatus: hasMid ? midsemStatus : 'N/A',
+      midsemStatus: hasMid ? (isMidFilled ? midsemStatus : 'Pending Result') : 'N/A',
       endsemMarks: hasEnd ? endNum : null,
       endsemMax: hasEnd ? endMaxNum : 100,
-      endsemStatus: hasEnd ? endsemStatus : 'Pending',
-      status: hasEnd
+      endsemStatus: hasEnd ? (isEndFilled ? endsemStatus : (isBacklog ? 'Backlog / Failed' : 'Pending')) : 'Pending',
+      status: isBacklog
+        ? `Backlog Paper (${repeatExamStatus})`
+        : isRepeat
+        ? `Repeat Exam (${repeatExamStatus})`
+        : isEndFilled
         ? (endsemStatus === 'Passed'
             ? 'Completed & Passed'
-            : endsemStatus === 'Backlog' || endsemStatus === 'Backlog / Failed'
-            ? 'Backlog / Needs Retest'
-            : 'Eligible for End-Sem Exam')
-        : (midsemStatus === 'Passed' ? 'Mid-Sem Cleared' : 'Mid-Sem Evaluated'),
+            : endsemStatus === 'Eligible'
+            ? 'Eligible for End-Sem Exam'
+            : endsemStatus)
+        : (isMidFilled ? (midsemStatus === 'Passed' ? 'Mid-Sem Cleared' : 'Mid-Sem Evaluated') : 'Enrolled (Marks Pending)'),
       isCurrentSemester: semester === defaultSemester
     };
 
@@ -175,19 +218,19 @@ export default function SubjectMarksModal({
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in">
-      <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto custom-scrollbar">
+      <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-slate-100 max-h-[92vh] overflow-y-auto custom-scrollbar">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-100">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#fdeedc] text-[#8a4816] flex items-center justify-center font-bold shadow-xs">
+            <div className="w-10 h-10 rounded-2xl bg-[#caf0f8] text-[#0077b6] flex items-center justify-center font-bold shadow-xs">
               <BookOpen size={20} />
             </div>
             <div>
-              <h3 className="font-extrabold text-base text-slate-900 tracking-tight">
-                {initialSubject ? 'Edit Subject & Examination Marks' : 'Build Profile: Add Subject & Marks'}
+              <h3 className="font-extrabold text-base text-[#03045e] tracking-tight">
+                {initialSubject ? 'Edit Subject & Examination Marks' : 'Select Subject & Enter Marks'}
               </h3>
               <p className="text-xs text-slate-500">
-                Select your semester, choose the subject, and enter your Mid-Sem & End-Sem marks.
+                Choose your semester, pick your course, and record Mid-Sem, End-Sem, or repeat exam standing.
               </p>
             </div>
           </div>
@@ -207,7 +250,7 @@ export default function SubjectMarksModal({
         )}
 
         <form onSubmit={handleSubmit} className="mt-5 space-y-4 text-xs">
-          {/* Step 1: Semester Selection */}
+          {/* Step 1: Semester Selection & Subject Selection */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="font-bold text-slate-700 block mb-1">
@@ -224,6 +267,8 @@ export default function SubjectMarksModal({
                 <option value="Semester 4">Semester 4 (2nd Year • Even)</option>
                 <option value="Semester 5">Semester 5 (3rd Year • Odd)</option>
                 <option value="Semester 6">Semester 6 (3rd Year • Even)</option>
+                <option value="Semester 7">Semester 7 (4th Year • Odd)</option>
+                <option value="Semester 8">Semester 8 (4th Year • Even)</option>
               </select>
             </div>
 
@@ -250,7 +295,7 @@ export default function SubjectMarksModal({
             </div>
           </div>
 
-          {/* Subject Code & Name details */}
+          {/* Subject Code & Full Title */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/70">
             <div>
               <label className="font-bold text-slate-700 block mb-1">Subject Code</label>
@@ -259,7 +304,7 @@ export default function SubjectMarksModal({
                 required
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
-                placeholder="e.g. BCA101-1"
+                placeholder="e.g. BCA301-6"
                 className="w-full p-2.5 rounded-xl bg-white border border-slate-200 outline-none font-mono font-bold text-xs"
               />
             </div>
@@ -270,16 +315,95 @@ export default function SubjectMarksModal({
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Data Structures Using C++"
+                placeholder="e.g. Cyber Security"
                 className="w-full p-2.5 rounded-xl bg-white border border-slate-200 outline-none font-bold text-xs"
               />
             </div>
           </div>
 
-          {/* Step 3: Examination Selection Dropdown (explicitly requested) */}
+          {/* Academic Standing / Repeat Option */}
+          <div className="bg-[#fffbf0] border border-[#f5e1a4] rounded-2xl p-3.5 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="font-black text-xs text-[#8a4816] flex items-center gap-1.5 uppercase tracking-wide">
+                <RefreshCw size={14} /> Academic Standing & Repeat / Backlog Status
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#fdeedc] text-[#8a4816]">
+                Course Attempt Status
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Course Attempt Type</label>
+                <select
+                  value={enrollmentType}
+                  onChange={(e) => setEnrollmentType(e.target.value)}
+                  className="w-full p-2.5 rounded-xl bg-white border border-amber-300 font-bold text-xs text-slate-800 outline-none"
+                >
+                  <option value="Regular">Regular Semester Course (First Attempt)</option>
+                  <option value="Repeat / Retest Examination">Repeat / Retest Examination (Repeating Subject)</option>
+                  <option value="Backlog Paper">Active Backlog Paper</option>
+                </select>
+              </div>
+
+              {(enrollmentType === 'Repeat / Retest Examination' || enrollmentType === 'Backlog Paper') && (
+                <>
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Repeat Exam Progress</label>
+                    <select
+                      value={repeatExamStatus}
+                      onChange={(e) => setRepeatExamStatus(e.target.value)}
+                      className="w-full p-2.5 rounded-xl bg-white border border-amber-300 font-bold text-xs text-slate-800 outline-none"
+                    >
+                      <option value="Preparing">Preparing for Repeat Exam</option>
+                      <option value="Scheduled">Repeat Exam Scheduled / Hall Ticket Issued</option>
+                      <option value="Appeared">Appeared for Exam (Awaiting Evaluation)</option>
+                      <option value="Cleared">Cleared via Repeat Exam</option>
+                    </select>
+                  </div>
+
+                  <div className="sm:col-span-2 pt-2 border-t border-amber-200/70 space-y-2">
+                    <div>
+                      <label className="font-bold text-slate-800 block mb-1 flex items-center justify-between">
+                        <span>Reason for Backlog <span className="text-rose-500">*</span></span>
+                        <span className="text-[10px] text-amber-800 font-semibold bg-amber-100 px-2 py-0.5 rounded-full">Required</span>
+                      </label>
+                      <select
+                        value={backlogReason}
+                        onChange={(e) => setBacklogReason(e.target.value)}
+                        className="w-full p-2.5 rounded-xl bg-white border border-amber-300 font-bold text-xs text-slate-800 outline-none"
+                      >
+                        <option value="Repeat due to Attendance">Repeat due to Attendance</option>
+                        <option value="Repeat due to Marks">Repeat due to Marks</option>
+                        <option value="Repeat due to Other Reasons">Repeat due to Other Reasons</option>
+                      </select>
+                    </div>
+
+                    {backlogReason === 'Repeat due to Other Reasons' && (
+                      <div className="space-y-1">
+                        <label className="font-bold text-slate-700 block mb-1 text-[11px]">
+                          Specify Reason for Backlog (Other) <span className="text-rose-500">*</span>
+                        </label>
+                        <textarea
+                          rows={2}
+                          required
+                          value={otherReasonText}
+                          onChange={(e) => setOtherReasonText(e.target.value)}
+                          placeholder="Write reason of giving backlog in others..."
+                          className="w-full p-2.5 rounded-xl bg-white border border-amber-300 text-xs text-slate-900 outline-none focus:border-amber-500"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Step 3: Examination Selection Dropdown */}
           <div>
             <label className="font-bold text-slate-800 block mb-1 flex items-center justify-between">
-              <span>3. Examination Type (Exam Dropdown) <span className="text-rose-500">*</span></span>
+              <span>Examination Type (Exam Dropdown) <span className="text-rose-500">*</span></span>
               <span className="text-[10px] text-slate-400 font-normal">Choose which examinations to record marks for</span>
             </label>
             <select
@@ -314,7 +438,7 @@ export default function SubjectMarksModal({
                       type="number"
                       min="0"
                       max={midsemMax}
-                      required
+                      placeholder="e.g. 0 (or blank)"
                       value={midsemMarks}
                       onChange={(e) => setMidsemMarks(e.target.value)}
                       className="w-full p-2.5 rounded-xl bg-white border border-slate-200 outline-none font-black text-sm text-slate-900"
@@ -342,6 +466,7 @@ export default function SubjectMarksModal({
                       <option value="Distinction">Distinction (Exemplary)</option>
                       <option value="Backlog / Needs Retest">Backlog / Retest Required</option>
                       <option value="Pending Result">Pending Result</option>
+                      <option value="Absent">Absent</option>
                     </select>
                   </div>
                 </div>
@@ -367,7 +492,7 @@ export default function SubjectMarksModal({
                       type="number"
                       min="0"
                       max={endsemMax}
-                      required
+                      placeholder="e.g. 0 (or blank)"
                       value={endsemMarks}
                       onChange={(e) => setEndsemMarks(e.target.value)}
                       className="w-full p-2.5 rounded-xl bg-white border border-slate-200 outline-none font-black text-sm text-slate-900"
@@ -391,9 +516,10 @@ export default function SubjectMarksModal({
                       onChange={(e) => setEndsemStatus(e.target.value)}
                       className="w-full p-2.5 rounded-xl bg-white border border-slate-200 outline-none text-xs font-bold text-slate-800"
                     >
-                      <option value="Eligible">Eligible for Exam</option>
                       <option value="Passed">Passed (Semester Cleared)</option>
+                      <option value="Eligible">Eligible for Exam</option>
                       <option value="Backlog / Failed">Backlog / Repeat Exam</option>
+                      <option value="Repeat Exam Required">Repeat Exam Required</option>
                       <option value="Pending">Pending Evaluation</option>
                     </select>
                   </div>
@@ -411,7 +537,7 @@ export default function SubjectMarksModal({
                 value={faculty}
                 onChange={(e) => setFaculty(e.target.value)}
                 placeholder="Department Professor"
-                className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 outline-none text-xs"
+                className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 outline-none text-xs font-medium"
               />
             </div>
             <div>
@@ -444,10 +570,10 @@ export default function SubjectMarksModal({
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 bg-[#13141b] text-white rounded-xl font-bold hover:bg-slate-800 transition cursor-pointer flex items-center gap-1.5 shadow-sm"
+              className="px-6 py-2.5 bg-[#0077b6] hover:bg-[#03045e] text-white rounded-xl font-bold transition cursor-pointer flex items-center gap-1.5 shadow-md shadow-[#0077b6]/20"
             >
               <Check size={14} />
-              Save Subject & Marks
+              Save Subject & Details
             </button>
           </div>
         </form>

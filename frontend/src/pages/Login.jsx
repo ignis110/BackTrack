@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { GraduationCap, ArrowLeft, Lock, UserCircle, AlertCircle } from 'lucide-react';
+import { GraduationCap, ArrowLeft, Lock, UserCircle, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import {
   authenticateStudent,
   authenticateFaculty,
@@ -13,6 +13,7 @@ export default function Login() {
   const [role, setRole] = useState('student');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
   // Extract role from URL query param if present
@@ -88,22 +89,23 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans relative overflow-hidden">
+    <div className="min-h-screen bg-[#f4f9fd] flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans relative overflow-hidden">
       
       {/* Decorative background blobs */}
-      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-indigo-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-cyan-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30"></div>
+      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-[#90e0ef] rounded-full mix-blend-multiply filter blur-3xl opacity-35"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-[#caf0f8] rounded-full mix-blend-multiply filter blur-3xl opacity-40"></div>
+      <div className="absolute top-[40%] right-[10%] w-80 h-80 bg-[#00b4d8]/15 rounded-full mix-blend-multiply filter blur-3xl opacity-30"></div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
-        <Link to="/" className="flex justify-center items-center gap-2 mb-6 text-slate-500 hover:text-indigo-600 transition">
+        <Link to="/" className="flex justify-center items-center gap-2 mb-6 text-slate-500 hover:text-[#0077b6] transition">
           <ArrowLeft size={16} /> Back to Home
         </Link>
         <div className="flex justify-center">
-          <div className="bg-indigo-600 p-3 rounded-2xl shadow-lg">
+          <div className="bg-[#0077b6] p-3 rounded-2xl shadow-xl shadow-[#0077b6]/30">
             <GraduationCap className="h-10 w-10 text-white" />
           </div>
         </div>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-900 tracking-tight">
+        <h2 className="mt-6 text-center text-3xl font-extrabold text-[#03045e] tracking-tight">
           Welcome back
         </h2>
         <p className="mt-2 text-center text-sm text-slate-600">
@@ -112,19 +114,19 @@ export default function Login() {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
-        <div className="bg-white py-8 px-4 shadow-xl shadow-slate-200/50 sm:rounded-3xl sm:px-10 border border-slate-100">
+        <div className="bg-white py-8 px-4 shadow-xl shadow-[#03045e]/5 sm:rounded-3xl sm:px-10 border border-[#caf0f8]">
           
           {/* Role selector */}
-          <div className="flex p-1 bg-slate-100 rounded-xl mb-6">
+          <div className="flex p-1 bg-[#caf0f8]/50 rounded-2xl mb-6">
             {['student', 'faculty', 'admin'].map((r) => (
               <button
                 key={r}
                 type="button"
                 onClick={() => handleRoleChange(r)}
-                className={`flex-1 py-2 text-sm font-semibold capitalize rounded-lg transition-all ${
+                className={`flex-1 py-2 text-sm font-semibold capitalize rounded-xl transition-all cursor-pointer ${
                   role === r 
-                  ? 'bg-white text-indigo-700 shadow-sm' 
-                  : 'text-slate-500 hover:text-slate-700'
+                  ? 'bg-[#0077b6] text-white shadow-md shadow-[#0077b6]/20' 
+                  : 'text-slate-500 hover:text-[#03045e]'
                 }`}
               >
                 {r}
@@ -155,49 +157,83 @@ export default function Login() {
                   required
                   value={username}
                   onChange={(e) => { setUsername(e.target.value); setErrorMessage(''); }}
-                  className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50 transition"
+                  className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-[#0077b6] focus:border-[#0077b6] bg-slate-50 transition"
                   placeholder={
                     role === 'admin'
                       ? 'Enter admin username (e.g. admin)'
                       : role === 'student'
                       ? 'Enter your USN or username (e.g. 24215107 or anirudh)'
-                      : 'Enter Employee ID or username (e.g. FAC-2024-BCA or faculty)'
+                      : 'Enter Employee ID or username (e.g. rsharma or FAC-101)'
                   }
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700">Password</label>
-              <div className="mt-1 relative rounded-md shadow-sm">
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-slate-700">Password</label>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-xs text-[#0077b6] hover:text-[#03045e] font-medium flex items-center gap-1 cursor-pointer"
+                >
+                  {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                  <span>{showPassword ? 'Hide' : 'Show'}</span>
+                </button>
+              </div>
+              <div className="relative rounded-md shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Lock className="h-5 w-5 text-slate-400" />
                 </div>
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50 transition"
+                  onChange={(e) => { setPassword(e.target.value); setErrorMessage(''); }}
+                  className="block w-full pl-10 pr-10 py-3 border border-slate-200 rounded-xl focus:ring-[#0077b6] focus:border-[#0077b6] bg-slate-50 transition"
                   placeholder="••••••••"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
+              <p className="mt-1.5 text-[11px] text-slate-500 font-medium">
+                {role === 'faculty' && (
+                  <span>
+                    Faculty Password: <strong className="text-[#0077b6] font-mono">faculty101</strong> or <strong className="text-[#0077b6] font-mono">faculty123</strong>
+                  </span>
+                )}
+                {role === 'student' && (
+                  <span>
+                    Student Password: <strong className="text-[#0077b6] font-mono">student123</strong>
+                  </span>
+                )}
+                {role === 'admin' && (
+                  <span>
+                    Admin Credentials: Username <strong className="text-[#0077b6] font-mono">admin</strong> & Password <strong className="text-[#0077b6] font-mono">admin123</strong>
+                  </span>
+                )}
+              </p>
             </div>
 
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <input type="checkbox" className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
+                <input type="checkbox" className="h-4 w-4 text-[#0077b6] focus:ring-[#0077b6] border-gray-300 rounded" />
                 <label className="ml-2 block text-sm text-slate-600">Remember me</label>
               </div>
               <div className="text-sm">
-                <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">Forgot password?</a>
+                <a href="#" className="font-medium text-[#0077b6] hover:text-[#03045e]">Forgot password?</a>
               </div>
             </div>
 
             <div>
               <button
                 type="submit"
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-md shadow-[#0077b6]/25 text-sm font-semibold text-white bg-[#0077b6] hover:bg-[#03045e] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0077b6] transition-all cursor-pointer"
               >
                 Sign In
               </button>
@@ -208,7 +244,7 @@ export default function Login() {
             {role === 'student' && (
               <>
                 New student?{' '}
-                <Link to="/register?role=student" className="font-semibold text-indigo-600 hover:text-indigo-500">
+                <Link to="/register?role=student" className="font-semibold text-[#0077b6] hover:text-[#03045e]">
                   Create an account
                 </Link>
               </>
@@ -216,7 +252,7 @@ export default function Login() {
             {role === 'faculty' && (
               <>
                 New faculty member?{' '}
-                <Link to="/register?role=faculty" className="font-semibold text-indigo-600 hover:text-indigo-500">
+                <Link to="/register?role=faculty" className="font-semibold text-[#0077b6] hover:text-[#03045e]">
                   Create an account
                 </Link>
               </>
@@ -224,7 +260,7 @@ export default function Login() {
             {role === 'admin' && (
               <>
                 New administrator?{' '}
-                <Link to="/register?role=admin" className="font-semibold text-indigo-600 hover:text-indigo-500">
+                <Link to="/register?role=admin" className="font-semibold text-[#0077b6] hover:text-[#03045e]">
                   Create an account
                 </Link>
               </>
