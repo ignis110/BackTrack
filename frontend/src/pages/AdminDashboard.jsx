@@ -71,7 +71,6 @@ import {
   UNIVERSITY_DEPARTMENTS
 } from '../utils/backlogStore';
 import ClearanceCertificateModal from '../components/ClearanceCertificateModal';
-import { ResolutionFunnelSummary } from '../components/ResolutionFunnel';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -3937,13 +3936,6 @@ function AdminBacklogsUpdatesView({ backlogRecords = [], setBacklogRecords, trig
           <p className="text-[11px] text-[#166534] mt-1">Certified by faculty and exam cell</p>
         </div>
       </div>
-
-      {/* University-wide Backlog Resolution Funnel */}
-      <ResolutionFunnelSummary
-        records={backlogRecords}
-        activeFilter={funnelFilter}
-        onFilterSelect={(stage) => setFunnelFilter(funnelFilter === stage ? null : stage)}
-      />
 
       {/* Filter and Search Bar */}
       <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-[0_6px_20px_rgba(0,0,0,0.02)] space-y-4">

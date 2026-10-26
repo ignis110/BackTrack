@@ -51,7 +51,7 @@ import {
 import ClearanceCertificateModal from '../components/ClearanceCertificateModal';
 import FacultyAdviceModal from '../components/FacultyAdviceModal';
 import MeetingDeadlineModal from '../components/MeetingDeadlineModal';
-import { RecordFunnelStepper, ResolutionFunnelSummary } from '../components/ResolutionFunnel';
+import { RecordFunnelStepper } from '../components/ResolutionFunnel';
 
 // Clean Default Faculty Profile when no session is loaded
 const INITIAL_FACULTY = {
@@ -794,12 +794,6 @@ function FacultyDashboardTab({
           </div>
         </div>
       </div>
-
-      {/* Visual Resolution Funnel */}
-      <ResolutionFunnelSummary
-        records={backlogRecords}
-        onFilterSelect={() => onNavigate('Backlog Management')}
-      />
 
       {/* Pending Student Updates Quick Action Feed */}
       <div className="bg-white rounded-3xl p-6 lg:p-7 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
@@ -2411,13 +2405,6 @@ function FacultyBacklogManagementTab({
           <p className="text-[11px] text-[#166534] mt-1">Successfully resolved & certified</p>
         </div>
       </div>
-
-      {/* Resolution Funnel Summary Analytics */}
-      <ResolutionFunnelSummary
-        records={backlogRecords}
-        activeFilter={funnelStageFilter}
-        onFilterSelect={(stage) => setFunnelStageFilter(funnelStageFilter === stage ? null : stage)}
-      />
 
       {/* Filter and Search Bar */}
       <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-[0_6px_20px_rgba(0,0,0,0.02)] space-y-4">
