@@ -57,7 +57,7 @@ export default function MeetingDeadlineModal({
     },
     {
       id: 'mandatory',
-      label: '🟠 Mandatory Review (Assignment Check)',
+      label: '🟠 Mandatory Review (Progress Check)',
       color: 'bg-amber-50 text-amber-800 border-amber-200'
     },
     {
@@ -69,7 +69,7 @@ export default function MeetingDeadlineModal({
 
   const PRESET_WARNINGS = [
     'You have missed scheduled meetings for multiple days. You must report before this deadline or clearance will be withheld.',
-    'Urgent: In-person verification of your backlog remedial coursework & assignments required before exam date.',
+    'Urgent: In-person verification of your backlog remedial coursework & academic progress required before exam date.',
     'Final cabin consultation notice: Meet immediately to review syllabus coverage and secure repeat exam eligibility.',
     'Attendance shortage & exam ordinance advisory: Strict in-person discussion needed with faculty advisor.'
   ];

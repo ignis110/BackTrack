@@ -1,14 +1,13 @@
 import React from 'react';
-import { CheckCircle2, Clock, Check, AlertCircle, ArrowRight, ShieldCheck, UserCheck, BookOpen, FileCheck, Award } from 'lucide-react';
+import { CheckCircle2, Clock, Check, AlertCircle, ArrowRight, ShieldCheck, UserCheck, BookOpen, Award } from 'lucide-react';
 
 /**
- * 5-Stage Visual Resolution Stepper for an individual backlog paper.
+ * 4-Stage Visual Resolution Stepper for an individual backlog paper.
  */
 export function RecordFunnelStepper({ record }) {
   if (!record) return null;
 
   const isMetTeacher = Boolean(record.metTeacher);
-  const isAssignmentsDone = record.assignmentsCompleted === 'Completed';
   const isExamAppeared = record.repeatExamStatus === 'Appeared';
   const isExamScheduled = record.repeatExamStatus === 'Scheduled';
   const isCleared = record.clearanceStatus === 'Cleared' || record.resultStatus === 'Cleared';
@@ -30,20 +29,13 @@ export function RecordFunnelStepper({ record }) {
     },
     {
       id: 3,
-      label: 'Assignments',
-      detail: isAssignmentsDone ? 'Completed' : 'Pending',
-      status: isAssignmentsDone ? 'completed' : (isMetTeacher ? 'current' : 'upcoming'),
-      icon: <FileCheck size={13} />
-    },
-    {
-      id: 4,
       label: 'Repeat Exam',
       detail: isExamAppeared ? 'Appeared' : (isExamScheduled ? 'Scheduled' : 'Preparing'),
-      status: isExamAppeared ? 'completed' : (isExamScheduled ? 'current' : (isAssignmentsDone ? 'current' : 'upcoming')),
+      status: isExamAppeared ? 'completed' : (isExamScheduled ? 'current' : (isMetTeacher ? 'current' : 'upcoming')),
       icon: <Clock size={13} />
     },
     {
-      id: 5,
+      id: 4,
       label: 'Clearance',
       detail: isCleared ? 'Certified ✓' : 'In Review',
       status: isCleared ? 'completed' : (isExamAppeared ? 'current' : 'upcoming'),
@@ -94,7 +86,6 @@ export function RecordFunnelStepper({ record }) {
 export function ResolutionFunnelSummary({ records = [], activeFilter = null, onFilterSelect = null }) {
   const total = records.length;
   const metTeacher = records.filter((r) => r.metTeacher).length;
-  const assignmentsDone = records.filter((r) => r.assignmentsCompleted === 'Completed').length;
   const examAppeared = records.filter((r) => r.repeatExamStatus === 'Appeared').length;
   const cleared = records.filter((r) => r.clearanceStatus === 'Cleared').length;
 
@@ -120,18 +111,8 @@ export function ResolutionFunnelSummary({ records = [], activeFilter = null, onF
       desc: 'Completed one-on-one cabin consultation'
     },
     {
-      id: 'assignments',
-      name: '3. Assignments Verified',
-      count: assignmentsDone,
-      pct: total === 0 ? 0 : Math.round((assignmentsDone / total) * 100),
-      color: 'bg-[#00b4d8]',
-      textColor: 'text-[#0077b6]',
-      bgLight: 'bg-[#00b4d8]/20',
-      desc: 'Submitted remedial coursework'
-    },
-    {
       id: 'appeared',
-      name: '4. Repeat Exam Appeared',
+      name: '3. Repeat Exam Appeared',
       count: examAppeared,
       pct: total === 0 ? 0 : Math.round((examAppeared / total) * 100),
       color: 'bg-[#90e0ef]',
@@ -141,7 +122,7 @@ export function ResolutionFunnelSummary({ records = [], activeFilter = null, onF
     },
     {
       id: 'cleared',
-      name: '5. Officially Cleared',
+      name: '4. Officially Cleared',
       count: cleared,
       pct: total === 0 ? 0 : Math.round((cleared / total) * 100),
       color: 'bg-emerald-600',

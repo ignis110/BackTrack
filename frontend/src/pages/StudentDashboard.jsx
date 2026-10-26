@@ -1116,8 +1116,8 @@ export default function StudentDashboard() {
                   <option value="Backlog Doubt Clearance & Subject Guidance">
                     Backlog Doubt Clearance & Subject Guidance
                   </option>
-                  <option value="Remedial Coursework & Assignment Verification">
-                    Remedial Coursework & Assignment Verification
+                  <option value="Remedial Coursework & Guidance">
+                    Remedial Coursework & Guidance
                   </option>
                   <option value="Mid-Semester Retest / Make-up Consultation">
                     Mid-Semester Retest / Make-up Consultation
@@ -1814,7 +1814,6 @@ function StudentBacklogsTab({
   const [editingRecord, setEditingRecord] = useState(null);
   const [editForm, setEditForm] = useState({
     metTeacher: false,
-    assignmentsCompleted: 'Completed',
     teacherConsultation: 'Pending Guidance',
     repeatExamStatus: 'Preparing',
     resultStatus: 'Awaiting result',
@@ -1848,7 +1847,6 @@ function StudentBacklogsTab({
     setEditingRecord(record);
     setEditForm({
       metTeacher: record.metTeacher,
-      assignmentsCompleted: record.assignmentsCompleted || 'Completed',
       teacherConsultation: record.teacherConsultation || 'Pending Guidance',
       repeatExamStatus: record.repeatExamStatus || 'Preparing',
       resultStatus: record.resultStatus || 'Awaiting result',
@@ -1866,7 +1864,6 @@ function StudentBacklogsTab({
       usn: editingRecord.usn,
       studentName: editingRecord.studentName,
       metTeacher: editForm.metTeacher,
-      assignmentsCompleted: editForm.assignmentsCompleted,
       teacherConsultation: editForm.metTeacher ? 'Completed' : editForm.teacherConsultation,
       repeatExamStatus: editForm.repeatExamStatus,
       resultStatus: editForm.resultStatus,
@@ -1899,7 +1896,6 @@ function StudentBacklogsTab({
       maxMarks: 100,
       clearanceStatus: 'In Review',
       metTeacher: false,
-      assignmentsCompleted: 'Pending',
       teacherConsultation: 'Pending Guidance',
       repeatExamStatus: 'Preparing',
       resultStatus: 'Awaiting result',
@@ -1956,7 +1952,7 @@ function StudentBacklogsTab({
         <div>
           <h3 className="font-extrabold text-base text-slate-900">Backlog Subjects & Student Updates</h3>
           <p className="text-xs text-slate-500">
-            Submit regular progress updates to faculty for teacher meetings, assignments, exam preparation, and results.
+            Submit regular progress updates to faculty for teacher meetings, exam preparation, and results.
           </p>
         </div>
 
@@ -2061,24 +2057,17 @@ function StudentBacklogsTab({
                   </div>
                 </div>
 
-                {/* 5-Stage Visual Resolution Stepper */}
+                {/* 4-Stage Visual Resolution Stepper */}
                 <div className="p-3 bg-slate-50/70 rounded-2xl border border-slate-100">
                   <RecordFunnelStepper record={item} />
                 </div>
 
-                {/* 7 Update Fields Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1 text-xs">
+                {/* 5 Update Fields Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 pt-1 text-xs">
                   <div className="p-3 rounded-2xl bg-[#fbfbfd] border border-slate-100">
                     <span className="text-[10px] font-bold text-slate-400 block uppercase">Met Subject Teacher</span>
                     <strong className={`block mt-0.5 ${item.metTeacher ? 'text-emerald-700' : 'text-amber-700'}`}>
                       {item.metTeacher ? 'Yes, Met Teacher' : 'No / Pending'}
-                    </strong>
-                  </div>
-
-                  <div className="p-3 rounded-2xl bg-[#fbfbfd] border border-slate-100">
-                    <span className="text-[10px] font-bold text-slate-400 block uppercase">Assignments Completed</span>
-                    <strong className={`block mt-0.5 ${item.assignmentsCompleted === 'Completed' ? 'text-emerald-700' : 'text-amber-700'}`}>
-                      {item.assignmentsCompleted}
                     </strong>
                   </div>
 
@@ -2237,31 +2226,17 @@ function StudentBacklogsTab({
                 </label>
               </div>
 
-              {/* Field 2 & 3: Assignments & Teacher Consultation */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">Assignments Completed</label>
-                  <select
-                    value={editForm.assignmentsCompleted}
-                    onChange={(e) => setEditForm({ ...editForm, assignmentsCompleted: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-[#f6f7fa] border border-slate-200 text-xs text-slate-800 font-medium outline-none"
-                  >
-                    <option value="Completed">Completed</option>
-                    <option value="Pending">Pending / In Progress</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">Teacher Consultation</label>
-                  <select
-                    value={editForm.teacherConsultation}
-                    onChange={(e) => setEditForm({ ...editForm, teacherConsultation: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-[#f6f7fa] border border-slate-200 text-xs text-slate-800 font-medium outline-none"
-                  >
-                    <option value="Completed">Guidance Received / Visited</option>
-                    <option value="Pending Guidance">Pending Guidance</option>
-                  </select>
-                </div>
+              {/* Teacher Consultation */}
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Teacher Consultation</label>
+                <select
+                  value={editForm.teacherConsultation}
+                  onChange={(e) => setEditForm({ ...editForm, teacherConsultation: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-[#f6f7fa] border border-slate-200 text-xs text-slate-800 font-medium outline-none"
+                >
+                  <option value="Completed">Guidance Received / Visited</option>
+                  <option value="Pending Guidance">Pending Guidance</option>
+                </select>
               </div>
 
               {/* Field 4 & 5: Repeat Exam Status & Result Status */}
@@ -2450,7 +2425,7 @@ function StudentBacklogsTab({
           <div className="p-4 rounded-2xl bg-[#f4e8fd]/60 border border-[#e8c7fb]">
             <span className="w-6 h-6 rounded-full bg-[#eccffc] text-[#6b21a8] flex items-center justify-center font-bold text-xs mb-2">2</span>
             <span className="font-bold text-[#6b21a8] block">Faculty Consultation & Sign-Off</span>
-            <p className="text-[11px] text-slate-500 mt-1">Assigned subject faculty verifies assignments, consults with student, and confirms clearance eligibility.</p>
+            <p className="text-[11px] text-slate-500 mt-1">Assigned subject faculty reviews academic progress, consults with student, and confirms clearance eligibility.</p>
           </div>
 
           <div className="p-4 rounded-2xl bg-[#e7f6ee]/60 border border-[#bce8ce]">

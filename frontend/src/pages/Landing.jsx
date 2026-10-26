@@ -200,7 +200,7 @@ export default function Landing() {
                 </div>
                 <h3 className="text-xl font-black text-[#03045e] tracking-tight mb-2">Faculty Academic Desk</h3>
                 <p className="text-xs text-slate-600 leading-relaxed mb-6">
-                  Supervise student cohorts, conduct cabin consultations, verify remedial coursework assignments, and issue certified backlog clearance endorsements.
+                  Supervise student cohorts, conduct cabin consultations, verify remedial coursework, and issue certified backlog clearance endorsements.
                 </p>
                 <ul className="space-y-2.5 text-xs text-[#03045e] font-semibold mb-8">
                   <li className="flex items-center gap-2">
@@ -271,14 +271,14 @@ export default function Landing() {
               <Activity size={14} /> Standardized Protocol
             </div>
             <h2 className="text-3xl sm:text-4xl font-black text-[#03045e] tracking-tight">
-              5-Stage Backlog Resolution Pipeline
+              4-Stage Backlog Resolution Pipeline
             </h2>
             <p className="text-sm text-slate-600 mt-2 font-medium">
               Eliminate confusion with a linear, transparent, and auditable path from backlogged subject to verified clearance.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-white p-5 rounded-3xl border border-[#caf0f8] shadow-xs text-center relative">
               <div className="w-10 h-10 rounded-2xl bg-[#03045e] text-white flex items-center justify-center font-bold mx-auto mb-3 text-sm">
                 1
@@ -296,16 +296,8 @@ export default function Landing() {
             </div>
 
             <div className="bg-white p-5 rounded-3xl border border-[#caf0f8] shadow-xs text-center relative">
-              <div className="w-10 h-10 rounded-2xl bg-[#00b4d8] text-[#03045e] flex items-center justify-center font-bold mx-auto mb-3 text-sm">
-                3
-              </div>
-              <h4 className="font-extrabold text-xs text-[#03045e]">Assignments Done</h4>
-              <p className="text-[11px] text-slate-500 mt-1">Remedial question banks completed & verified.</p>
-            </div>
-
-            <div className="bg-white p-5 rounded-3xl border border-[#caf0f8] shadow-xs text-center relative">
               <div className="w-10 h-10 rounded-2xl bg-[#90e0ef] text-[#03045e] flex items-center justify-center font-bold mx-auto mb-3 text-sm">
-                4
+                3
               </div>
               <h4 className="font-extrabold text-xs text-[#03045e]">Repeat Examination</h4>
               <p className="text-[11px] text-slate-500 mt-1">Student appears for re-exam or re-evaluation.</p>
@@ -313,7 +305,7 @@ export default function Landing() {
 
             <div className="bg-white p-5 rounded-3xl border border-[#90e0ef] bg-gradient-to-b from-[#caf0f8]/40 to-white shadow-xs text-center relative">
               <div className="w-10 h-10 rounded-2xl bg-[#0077b6] text-white flex items-center justify-center font-bold mx-auto mb-3 text-sm">
-                5
+                4
               </div>
               <h4 className="font-extrabold text-xs text-[#0077b6]">Certified Cleared</h4>
               <p className="text-[11px] text-slate-500 mt-1">Official NAAC-compliant certificate generated.</p>

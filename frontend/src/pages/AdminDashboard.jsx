@@ -3845,7 +3845,6 @@ function AdminBacklogsUpdatesView({ backlogRecords = [], setBacklogRecords, trig
       const matchesReason = reasonFilter === 'All' || b.backlogReason === reasonFilter;
 
       if (funnelFilter === 'met' && !b.metTeacher) return false;
-      if (funnelFilter === 'assignments' && b.assignmentsCompleted !== 'Completed') return false;
       if (funnelFilter === 'appeared' && b.repeatExamStatus !== 'Appeared') return false;
       if (funnelFilter === 'cleared' && b.clearanceStatus !== 'Cleared') return false;
 
@@ -4141,12 +4140,7 @@ function AdminBacklogsUpdatesView({ backlogRecords = [], setBacklogRecords, trig
                                     {item.metTeacher ? 'Yes ✓' : 'Pending'}
                                   </strong>
                                 </div>
-                                <div className="flex items-center justify-between">
-                                  <span className="text-slate-500">Assignments:</span>
-                                  <strong className={item.assignmentsCompleted === 'Completed' ? 'text-emerald-700' : 'text-slate-700'}>
-                                    {item.assignmentsCompleted}
-                                  </strong>
-                                </div>
+
                                 {item.studentRemarks && (
                                   <div className="text-[11px] text-slate-500 italic pt-1 border-t border-slate-100 truncate">
                                     &quot;{item.studentRemarks}&quot;

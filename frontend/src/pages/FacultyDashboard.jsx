@@ -867,10 +867,6 @@ function FacultyDashboardTab({
 
                     <div className="mt-2 space-y-1 text-xs text-slate-600">
                       <div>
-                        <span className="text-slate-400 font-medium">Assignments: </span>
-                        <span className="font-semibold text-slate-800">{item.assignmentsCompleted}</span>
-                      </div>
-                      <div>
                         <span className="text-slate-400 font-medium">Repeat exam: </span>
                         <span className="font-semibold text-slate-800">{item.repeatExamStatus}</span>
                       </div>
@@ -1548,7 +1544,7 @@ function FacultyApprovalsTab({ requests, setRequests, facultyProfile, triggerToa
                 rows={3}
                 value={remarkText}
                 onChange={(e) => setRemarkText(e.target.value)}
-                placeholder="e.g. Slot confirmed. Please visit Cabin 101 with your syllabus notes and assignment question sheet."
+                placeholder="e.g. Slot confirmed. Please visit Cabin 101 with your syllabus notes and revision materials."
                 className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs outline-none focus:bg-white"
               />
             </div>
@@ -2154,19 +2150,12 @@ function FacultyStudentUpdatesTab({
                     <RecordFunnelStepper record={item} />
                   </div>
 
-                  {/* 7 Required Tracking Fields Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1 text-xs">
+                  {/* 5 Required Tracking Fields Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 pt-1 text-xs">
                     <div className="p-3 rounded-2xl bg-[#fbfbfd] border border-slate-100">
                       <span className="text-[10px] font-bold text-slate-400 block uppercase">Met Subject Teacher</span>
                       <span className={`font-extrabold mt-0.5 block ${item.metTeacher ? 'text-emerald-700' : 'text-amber-700'}`}>
                         {item.metTeacher ? 'Yes, Met Teacher' : 'Pending Meeting'}
-                      </span>
-                    </div>
-
-                    <div className="p-3 rounded-2xl bg-[#fbfbfd] border border-slate-100">
-                      <span className="text-[10px] font-bold text-slate-400 block uppercase">Assignments Completed</span>
-                      <span className={`font-extrabold mt-0.5 block ${item.assignmentsCompleted === 'Completed' ? 'text-emerald-700' : 'text-amber-700'}`}>
-                        {item.assignmentsCompleted}
                       </span>
                     </div>
 
@@ -2363,7 +2352,6 @@ function FacultyBacklogManagementTab({
       const matchesReason = reasonFilter === 'All' || b.backlogReason === reasonFilter;
 
       if (funnelStageFilter === 'met' && !b.metTeacher) return false;
-      if (funnelStageFilter === 'assignments' && b.assignmentsCompleted !== 'Completed') return false;
       if (funnelStageFilter === 'appeared' && b.repeatExamStatus !== 'Appeared') return false;
       if (funnelStageFilter === 'cleared' && b.clearanceStatus !== 'Cleared') return false;
 
@@ -2673,12 +2661,7 @@ function FacultyBacklogManagementTab({
                                     {item.metTeacher ? 'Yes ✓' : 'Pending'}
                                   </strong>
                                 </div>
-                                <div className="flex items-center justify-between">
-                                  <span className="text-slate-500">Assignments:</span>
-                                  <strong className={item.assignmentsCompleted === 'Completed' ? 'text-emerald-600' : 'text-slate-600'}>
-                                    {item.assignmentsCompleted}
-                                  </strong>
-                                </div>
+
                               </div>
                             </div>
                           </div>

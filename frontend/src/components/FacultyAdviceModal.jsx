@@ -10,7 +10,7 @@ export default function FacultyAdviceModal({ record, facultyName = 'Faculty Advi
 
   const PRESETS = [
     'Attend cabin consultation this Wednesday at 11:00 AM with your lecture notes.',
-    'Complete and submit Unit 3 & 4 question bank assignments to faculty cabin.',
+    'Complete and review Unit 3 & 4 question bank practice with faculty cabin.',
     'Remedial coursework hours verified. Approved for repeat examination hall ticket.',
     'Practice previous 3 years question papers before the scheduled repeat examination.',
     'Repeat examination marks verified. Clearance ready for endorsement.'
