@@ -239,8 +239,10 @@ export function updateStudentBacklogProgress(recordId, updatePayload) {
   const timeString = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' ' +
     now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
-  const updated = current.map((item) => {
+  let found = false;
+  let updated = current.map((item) => {
     if (item.id === recordId) {
+      found = true;
       return {
         ...item,
         ...updatePayload,
@@ -249,6 +251,24 @@ export function updateStudentBacklogProgress(recordId, updatePayload) {
     }
     return item;
   });
+
+  // Fallback match by subjectCode and student identifier if ID differed
+  if (!found && updatePayload && updatePayload.subjectCode) {
+    updated = current.map((item) => {
+      const matchSubject = item.subjectCode?.toLowerCase() === updatePayload.subjectCode?.toLowerCase();
+      const matchStudent = (updatePayload.usn && item.usn?.toLowerCase() === updatePayload.usn?.toLowerCase()) ||
+        (updatePayload.studentName && item.studentName?.toLowerCase() === updatePayload.studentName?.toLowerCase());
+      if (matchSubject && matchStudent) {
+        found = true;
+        return {
+          ...item,
+          ...updatePayload,
+          lastUpdated: timeString
+        };
+      }
+      return item;
+    });
+  }
 
   saveBacklogRecords(updated);
   return updated;

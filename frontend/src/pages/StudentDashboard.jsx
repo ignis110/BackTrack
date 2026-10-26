@@ -29,7 +29,8 @@ import {
   Filter,
   Award,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  ClipboardList
 } from 'lucide-react';
 import {
   getBacklogRecords,
@@ -1860,12 +1861,16 @@ function StudentBacklogsTab({
     if (!editingRecord) return;
 
     const payload = {
+      subjectCode: editingRecord.subjectCode,
+      subjectName: editingRecord.subjectName,
+      usn: editingRecord.usn,
+      studentName: editingRecord.studentName,
       metTeacher: editForm.metTeacher,
       assignmentsCompleted: editForm.assignmentsCompleted,
       teacherConsultation: editForm.metTeacher ? 'Completed' : editForm.teacherConsultation,
       repeatExamStatus: editForm.repeatExamStatus,
       resultStatus: editForm.resultStatus,
-      studentRemarks: editForm.studentRemarks
+      studentRemarks: editForm.studentRemarks?.trim() || editingRecord.studentRemarks || 'Progress report updated by candidate.'
     };
 
     const updated = updateStudentBacklogProgress(editingRecord.id, payload);
@@ -2296,7 +2301,6 @@ function StudentBacklogsTab({
                 </label>
                 <textarea
                   rows={3}
-                  required
                   value={editForm.studentRemarks}
                   onChange={(e) => setEditForm({ ...editForm, studentRemarks: e.target.value })}
                   placeholder="Explain your latest progress, units completed, or guidance received from teacher..."
