@@ -30,7 +30,13 @@ import {
   Award,
   Trash2,
   AlertTriangle,
-  ClipboardList
+  ClipboardList,
+  FileText,
+  HelpCircle,
+  Activity,
+  Calendar,
+  Shield,
+  Rocket
 } from 'lucide-react';
 import {
   getBacklogRecords,
@@ -51,6 +57,8 @@ import {
   addNotification
 } from '../utils/backlogStore';
 import ClearanceCertificateModal from '../components/ClearanceCertificateModal';
+import StudentProfileDocumentModal from '../components/StudentProfileDocumentModal';
+import BeginnerGuideModal from '../components/BeginnerGuideModal';
 import { RecordFunnelStepper } from '../components/ResolutionFunnel';
 import SubjectMarksModal from '../components/SubjectMarksModal';
 import SemesterSubjectSelector from '../components/SemesterSubjectSelector';
@@ -247,6 +255,8 @@ export default function StudentDashboard() {
   });
   const [backlogRecords, setBacklogRecords] = useState(() => getBacklogRecords());
   const [selectedCertificateRecord, setSelectedCertificateRecord] = useState(null);
+  const [isExportDocModalOpen, setIsExportDocModalOpen] = useState(false);
+  const [isBeginnerGuideModalOpen, setIsBeginnerGuideModalOpen] = useState(false);
 
   // Modal state for manual subject & marks profile builder
   const [subjectModalOpen, setSubjectModalOpen] = useState(false);
@@ -888,9 +898,12 @@ export default function StudentDashboard() {
               profile={profile}
               subjects={subjects}
               requests={requests}
+              notifications={notifications}
               backlogRecords={backlogRecords}
               onNavigate={(t) => setActiveTab(t)}
               openApplyModal={() => setIsApplyModalOpen(true)}
+              onOpenExportDossier={() => setIsExportDocModalOpen(true)}
+              onOpenBeginnerGuide={() => setIsBeginnerGuideModalOpen(true)}
               onOpenAddSubject={handleOpenAddSubject}
               onOpenEditSubject={handleOpenEditSubject}
               onEnrollSubject={handleEnrollSubject}
@@ -1175,6 +1188,28 @@ export default function StudentDashboard() {
         />
       )}
 
+      {/* Modal: Student Academic Dossier Export */}
+      {isExportDocModalOpen && (
+        <StudentProfileDocumentModal
+          profile={profile}
+          subjects={subjects}
+          requests={requests}
+          backlogRecords={backlogRecords}
+          onClose={() => setIsExportDocModalOpen(false)}
+        />
+      )}
+
+      {/* Modal: Beginner Navigation Guide Walkthrough */}
+      {isBeginnerGuideModalOpen && (
+        <BeginnerGuideModal
+          onClose={() => setIsBeginnerGuideModalOpen(false)}
+          onNavigate={(tab) => {
+            setIsBeginnerGuideModalOpen(false);
+            setActiveTab(tab);
+          }}
+        />
+      )}
+
       {/* Modal: Manual Subject & Examination Marks Builder */}
       <SubjectMarksModal
         isOpen={subjectModalOpen}
@@ -1227,11 +1262,14 @@ function SidebarBtn({ icon, label, active, badge, onClick }) {
 // =============================================================
 function StudentDashboardTab({
   profile,
-  subjects,
-  requests,
+  subjects = [],
+  requests = [],
+  notifications = [],
   backlogRecords = [],
   onNavigate,
   openApplyModal,
+  onOpenExportDossier,
+  onOpenBeginnerGuide,
   onOpenAddSubject,
   onOpenEditSubject,
   onEnrollSubject,
@@ -1240,23 +1278,57 @@ function StudentDashboardTab({
   onRemoveSubject,
   onClearAllSubjects
 }) {
+  const myBacklogs = backlogRecords.filter(
+    (b) =>
+      (b.studentName && b.studentName.toLowerCase() === profile.name.toLowerCase()) ||
+      (b.usn && b.usn.toLowerCase() === profile.usn.toLowerCase())
+  );
+
+  const urgentMeetings = myBacklogs.filter((b) => b.meetingRequired && !b.metTeacher);
+
   return (
     <div className="space-y-6">
-      {/* Welcome Banner */}
+      {/* Welcome Banner with Action Suite */}
       <div className="w-full bg-white rounded-3xl p-6 lg:p-7 border border-[#caf0f8] shadow-[0_8px_30px_rgba(3,4,94,0.03)] relative overflow-hidden flex flex-col justify-between">
-        <div className="relative z-10">
-          <h3 className="text-2xl font-extrabold text-[#03045e] tracking-tight">
-            Welcome back, {profile.name}
-          </h3>
-          <p className="text-xs text-[#0077b6] mt-1 max-w-xl leading-relaxed">
-            You are currently enrolled in <strong>{subjects.length} course subjects</strong> for {profile.semester}.
-            Your faculty advisor is <strong>{profile.advisor}</strong>. You can customize your subjects and enter your marks anytime!
-          </p>
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#caf0f8] text-[#0077b6] text-[11px] font-black uppercase tracking-wide mb-2.5">
+              <Sparkles size={13} className="text-[#00b4d8]" />
+              <span>Academic Progression Hub</span>
+            </div>
+            <h3 className="text-2xl lg:text-3xl font-extrabold text-[#03045e] tracking-tight">
+              Welcome back, {profile.name}
+            </h3>
+            <p className="text-xs text-[#0077b6] mt-1 max-w-xl leading-relaxed">
+              Enrolled in <strong>{subjects.length} course subjects</strong> for {profile.semester} ({profile.course}).
+              Your appointed faculty advisor is <strong>{profile.advisor}</strong>.
+            </p>
+          </div>
+
+          {/* Quick Action Buttons: Export Dossier & Beginner Guide */}
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <button
+              onClick={onOpenExportDossier}
+              className="px-4 py-2.5 rounded-2xl bg-[#03045e] text-white hover:bg-[#0077b6] text-xs font-bold transition shadow-md shadow-[#03045e]/20 flex items-center gap-1.5 cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+              title="Export official student profile document"
+            >
+              <FileText size={15} className="text-[#90e0ef]" />
+              <span>Export Dossier (Doc/PDF)</span>
+            </button>
+
+            <button
+              onClick={onOpenBeginnerGuide}
+              className="px-4 py-2.5 rounded-2xl bg-[#caf0f8] text-[#0077b6] hover:bg-[#90e0ef] text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <HelpCircle size={15} />
+              <span>Beginner’s Guide</span>
+            </button>
+          </div>
         </div>
 
-        <div className="mt-6 pt-5 border-t border-[#caf0f8] flex flex-wrap items-center gap-4 relative z-10">
+        <div className="mt-6 pt-5 border-t border-[#caf0f8] flex flex-wrap items-center gap-3 relative z-10">
           <div className="flex items-center gap-2 text-xs font-bold text-[#0077b6] bg-[#caf0f8]/70 px-3.5 py-2 rounded-xl font-mono">
-            USN: {profile.usn} • {profile.section}
+            USN: {profile.usn} • Section {profile.section}
           </div>
           <button
             onClick={() => onNavigate('My Subjects')}
@@ -1281,9 +1353,9 @@ function StudentDashboardTab({
         <div className="absolute right-[-40px] top-[-40px] w-64 h-64 rounded-full bg-gradient-to-br from-[#caf0f8] to-[#90e0ef]/50 blur-2xl pointer-events-none" />
       </div>
 
-      {/* 4 Coolors Stat Cards */}
+      {/* 4 Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {/* Current CGPA - Powder Ice to Soft Sky */}
+        {/* Cumulative CGPA */}
         <div className="bg-gradient-to-br from-[#caf0f8] to-[#90e0ef]/40 border border-[#90e0ef] rounded-3xl p-5 shadow-[0_6px_20px_rgba(0,119,182,0.1)]">
           <div className="flex items-center justify-between">
             <div className="w-11 h-11 rounded-2xl bg-white text-[#0077b6] flex items-center justify-center font-bold shadow-xs">
@@ -1302,7 +1374,7 @@ function StudentDashboardTab({
           </div>
         </div>
 
-        {/* Mid-Semester Performance - Soft Sky to Vivid Cyan */}
+        {/* Mid-Semester Internal Performance */}
         <div className="bg-gradient-to-br from-[#90e0ef]/40 to-[#00b4d8]/20 border border-[#00b4d8]/40 rounded-3xl p-5 shadow-[0_6px_20px_rgba(0,180,216,0.1)]">
           <div className="flex items-center justify-between">
             <div className="w-11 h-11 rounded-2xl bg-white text-[#00b4d8] flex items-center justify-center font-bold shadow-xs">
@@ -1321,7 +1393,7 @@ function StudentDashboardTab({
           </div>
         </div>
 
-        {/* Enrolled Subjects - Pacific Cyan to Ocean Blue */}
+        {/* Enrolled Courses */}
         <div
           onClick={() => onNavigate('My Subjects')}
           className="bg-gradient-to-br from-[#00b4d8]/15 to-[#0077b6]/15 border border-[#0077b6]/30 rounded-3xl p-5 shadow-[0_6px_20px_rgba(0,119,182,0.1)] cursor-pointer hover:scale-[1.02] transition-transform"
@@ -1341,7 +1413,7 @@ function StudentDashboardTab({
           </div>
         </div>
 
-        {/* Backlog Status - Deep Navy Gradient Accent */}
+        {/* Backlog Tracking */}
         <div
           onClick={() => onNavigate('Backlog Tracking')}
           className="bg-gradient-to-br from-[#03045e]/10 to-[#caf0f8]/60 border border-[#90e0ef] rounded-3xl p-5 shadow-[0_6px_20px_rgba(3,4,94,0.08)] cursor-pointer hover:scale-[1.02] transition-transform"
@@ -1351,20 +1423,169 @@ function StudentDashboardTab({
               <GraduationCap size={22} />
             </div>
             <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#03045e]/15 text-[#03045e]">
-              {backlogRecords.filter((b) => b.studentName === profile.name || b.usn === profile.usn).length > 0 ? 'Active' : 'All Clear'}
+              {myBacklogs.length > 0 ? 'Active' : 'All Clear'}
             </span>
           </div>
           <div className="mt-4">
             <span className="text-xs font-bold text-[#03045e]/80 uppercase tracking-wide">Backlog Tracking</span>
             <div className="text-2xl font-black text-[#03045e] tracking-tight mt-0.5">
-              {backlogRecords.filter((b) => b.studentName === profile.name || b.usn === profile.usn).length || backlogRecords.length} Subjects
+              {myBacklogs.length} Subjects
             </div>
             <p className="text-[11px] text-[#0077b6] mt-1 font-medium">Click to update teacher progress</p>
           </div>
         </div>
       </div>
 
-      {/* Space to Select Subjects as per Semester & Enter Details */}
+      {/* 2-Column Operational Suite: Live Alerts & Up-to-Date Teacher Consultations */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* Card 1: Up-to-Date Teacher Meetings Tracker */}
+        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-[#caf0f8] text-[#0077b6] flex items-center justify-center font-bold">
+                  <Calendar size={18} />
+                </div>
+                <div>
+                  <h4 className="text-base font-extrabold text-slate-900 tracking-tight">Teacher Consultations</h4>
+                  <p className="text-xs text-slate-500">Scheduled cabin visits, guidance slots & repeat exam advising</p>
+                </div>
+              </div>
+              <button
+                onClick={() => onNavigate('Teacher Meetings')}
+                className="text-xs font-bold text-[#0077b6] hover:underline cursor-pointer"
+              >
+                View all ({requests.length})
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {requests.length === 0 ? (
+                <div className="p-6 text-center bg-[#fbfbfd] rounded-2xl border border-slate-100 space-y-2">
+                  <UserCheck size={28} className="mx-auto text-slate-300" />
+                  <p className="text-xs text-slate-600 font-bold">No active teacher meetings booked.</p>
+                  <p className="text-[11px] text-slate-400">
+                    Request an in-person cabin consultation to review your syllabus doubts or backlog repeat papers.
+                  </p>
+                </div>
+              ) : (
+                requests.slice(0, 3).map((r) => (
+                  <div key={r.id} className="p-3.5 rounded-2xl bg-[#f6f7fa] border border-slate-100 space-y-1.5 hover:border-slate-200 transition">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-extrabold text-xs text-slate-900">{r.subject}</span>
+                        <span className="text-[10px] font-mono font-bold text-slate-400">({r.type})</span>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        r.status === 'Approved'
+                          ? 'bg-[#e7f6ee] text-[#166534] border border-[#bce8ce]'
+                          : 'bg-[#fdeedc] text-[#8a4816] border border-[#fadab6]'
+                      }`}>
+                        {r.status}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 pt-0.5">
+                      <span className="flex items-center gap-1 font-mono">
+                        <Clock size={11} className="text-slate-400" /> {r.date} {r.time ? `• ${r.time}` : ''}
+                      </span>
+                      <span className="font-semibold text-slate-700">Teacher: {r.teacherName || profile.advisor || 'Dept Faculty'}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3 mt-4">
+            <span className="text-[11px] text-slate-400 font-medium">Cabin visits are conducted during faculty office hours.</span>
+            <button
+              onClick={openApplyModal}
+              className="px-4 py-2 bg-[#13141b] text-white rounded-xl font-bold text-xs hover:bg-slate-800 transition cursor-pointer shrink-0 shadow-sm"
+            >
+              + Request Teacher Meet
+            </button>
+          </div>
+        </div>
+
+        {/* Card 2: Live Academic Alerts & Notification Hub */}
+        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-[#fdeedc] text-[#8a4816] flex items-center justify-center font-bold">
+                  <Bell size={18} />
+                </div>
+                <div>
+                  <h4 className="text-base font-extrabold text-slate-900 tracking-tight">Active Academic Alerts</h4>
+                  <p className="text-xs text-slate-500">Real-time alerts, faculty advice & examination cell notices</p>
+                </div>
+              </div>
+              <button
+                onClick={() => onNavigate('Notifications')}
+                className="text-xs font-bold text-[#8a4816] hover:underline cursor-pointer"
+              >
+                View all
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {/* If there is an urgent meeting deadline alert on any backlog record */}
+              {urgentMeetings.length > 0 && (
+                <div className="p-3.5 bg-gradient-to-r from-rose-50 to-amber-50 rounded-2xl border border-rose-200 text-xs space-y-1">
+                  <div className="flex items-center justify-between font-extrabold text-rose-900">
+                    <span className="flex items-center gap-1.5">
+                      <AlertTriangle size={14} className="text-rose-600 animate-pulse" />
+                      MANDATORY FACULTY CONSULTATION NOTICE
+                    </span>
+                    <span className="text-[10px] bg-rose-200 px-2 py-0.5 rounded-full text-rose-900">
+                      Due: {urgentMeetings[0].meetingDeadline}
+                    </span>
+                  </div>
+                  <p className="text-rose-950 text-[11px] font-medium leading-relaxed italic">
+                    &quot;{urgentMeetings[0].meetingWarningMessage}&quot;
+                  </p>
+                  <div className="text-[10px] text-rose-800 font-mono pt-0.5 flex items-center justify-between">
+                    <span>Paper: {urgentMeetings[0].subjectCode} - {urgentMeetings[0].subjectName}</span>
+                    <span>Venue: {urgentMeetings[0].meetingCabinLocation || 'Faculty Cabin'}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Dynamic Notification Broadcasts */}
+              {notifications.slice(0, urgentMeetings.length > 0 ? 2 : 3).map((n) => (
+                <div key={n.id} className="p-3.5 rounded-2xl bg-[#f6f7fa] border border-slate-100 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-extrabold text-xs text-slate-900">{n.title}</span>
+                    <span className="text-[10px] font-mono text-slate-400">{n.date || 'Today'}</span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 leading-relaxed">{n.message}</p>
+                </div>
+              ))}
+
+              {urgentMeetings.length === 0 && notifications.length === 0 && (
+                <div className="p-6 text-center bg-[#fbfbfd] rounded-2xl border border-slate-100 space-y-1">
+                  <CheckCircle2 size={24} className="mx-auto text-emerald-500 mb-1" />
+                  <p className="text-xs text-slate-700 font-bold">All Academic Standing Alerts Clear</p>
+                  <p className="text-[11px] text-slate-400">No pending faculty notices or urgent meeting deadlines.</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3 mt-4">
+            <span className="text-[11px] text-slate-400 font-medium">Alerts are broadcasted directly by your course instructors.</span>
+            <button
+              onClick={() => onNavigate('Backlog Tracking')}
+              className="px-4 py-2 bg-[#fdeedc] text-[#8a4816] hover:bg-[#fadab6] rounded-xl font-bold text-xs transition cursor-pointer shrink-0"
+            >
+              Check Backlogs ({myBacklogs.length})
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Curriculum Course Selector (SemesterSubjectSelector) */}
       <SemesterSubjectSelector
         enrolledSubjects={subjects}
         currentSemester={profile.semester}
@@ -1378,138 +1599,150 @@ function StudentDashboardTab({
         onClearAllSubjects={onClearAllSubjects}
       />
 
-      {/* Subjects Overview & Teacher Meetings Status */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white rounded-3xl p-6 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
-          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-            <div>
-              <h4 className="text-base font-extrabold text-slate-900 tracking-tight">Your Enrolled Courses</h4>
-              <p className="text-xs text-slate-500">Mid-Semester evaluation, End-Semester exam standing, and repeat paper progress</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={onOpenAddSubject}
-                className="text-xs font-bold text-[#8a4816] bg-[#fdeedc] hover:bg-[#fadab6] px-3 py-1.5 rounded-xl transition flex items-center gap-1 cursor-pointer shadow-xs"
-              >
-                <Plus size={13} /> Add Custom / Enter Marks
-              </button>
-              <button onClick={() => onNavigate('My Subjects')} className="text-xs font-bold text-slate-600 hover:text-slate-900 hover:underline">
-                View all details
-              </button>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            {subjects.length === 0 ? (
-              <div className="p-8 text-center bg-[#fbfbfd] rounded-2xl border border-slate-100 space-y-2">
-                <p className="text-xs text-slate-600 font-bold">No courses enrolled in your profile yet.</p>
-                <p className="text-xs text-slate-400">
-                  Select your semester above and click "+ Choose Subject" or "Select All Available" to build your course list.
-                </p>
-                <button
-                  onClick={onOpenAddSubject}
-                  className="mt-2 text-xs font-bold text-[#8a4816] hover:underline"
-                >
-                  + Or click to enter a custom subject manually
-                </button>
-              </div>
-            ) : (
-              subjects.map((sub) => {
-                const hasMid = sub.midsemMarks !== null && sub.midsemMarks !== undefined;
-                const hasEnd = sub.endsemMarks !== null && sub.endsemMarks !== undefined;
-                const isRepeat = sub.isRepeat || sub.enrollmentType?.includes('Repeat');
-                const isBacklog = sub.isBacklog || sub.endsemStatus?.includes('Backlog');
-
-                return (
-                  <div key={sub.code || sub.id} className="p-4 rounded-2xl bg-[#fbfbfd] border border-slate-100 flex items-center justify-between gap-4 flex-wrap sm:flex-nowrap">
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-black text-xs text-slate-900 font-mono">{sub.code}</span>
-                        <span className="text-xs font-bold text-slate-700">{sub.name}</span>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${sub.semesterType === 'Odd' ? 'bg-[#fdeedc] text-[#8a4816]' : 'bg-[#e9f2fc] text-[#1e40af]'}`}>
-                          {sub.semester || (sub.semesterType + ' Sem')}
-                        </span>
-                        {isRepeat && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-[#8a4816]">
-                            Repeat: {sub.repeatExamStatus || 'Preparing'}
-                          </span>
-                        )}
-                        {isBacklog && !isRepeat && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">
-                            Backlog
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[11px] text-slate-400 mt-0.5">{sub.faculty} • {sub.type}</p>
-                    </div>
-
-                    <div className="flex items-center gap-3 sm:gap-4 shrink-0">
-                      <div className="text-right">
-                        <span className="text-[10px] text-slate-400 block font-bold">MIDSEM SCORE</span>
-                        <span className="text-xs font-extrabold text-emerald-600">
-                          {hasMid ? `${sub.midsemMarks} / ${sub.midsemMax || 50}` : '—'}
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-[10px] text-slate-400 block font-bold">ENDSEM EXAM</span>
-                        <span className="text-xs font-extrabold text-[#1e40af]">
-                          {hasEnd ? `${sub.endsemMarks} / ${sub.endsemMax || 100}` : (sub.endsemStatus || 'Pending')}
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => onOpenEditSubject(sub)}
-                        className="p-1.5 rounded-xl bg-slate-100 hover:bg-[#fdeedc] text-slate-500 hover:text-[#8a4816] transition cursor-pointer"
-                        title="Edit Marks and Standing"
-                      >
-                        <Edit3 size={13} />
-                      </button>
-                      <button
-                        onClick={() => onRemoveSubject(sub.code)}
-                        className="p-1.5 rounded-xl text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                        title="Remove Subject"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-
-        {/* Teacher Meetings Status */}
-        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col justify-between">
+      {/* Section: Benefits of Proactive Backlog Management */}
+      <div className="bg-white rounded-3xl p-6 sm:p-7 border border-[#caf0f8] shadow-[0_8px_30px_rgb(3,4,94,0.02)] space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="text-base font-extrabold text-slate-900 tracking-tight">Teacher Meetings</h4>
-              <button onClick={() => onNavigate('Teacher Meetings')} className="text-xs font-bold text-[#6b21a8] hover:underline cursor-pointer">
-                View all
-              </button>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#caf0f8] text-[#0077b6] text-[10px] font-black uppercase tracking-wide mb-1.5">
+              <Shield size={13} className="text-[#00b4d8]" />
+              <span>University Governance Protocol</span>
             </div>
-
-            <div className="space-y-3">
-              {requests.map((r) => (
-                <div key={r.id} className="p-3.5 rounded-2xl bg-[#f6f7fa] border border-slate-100">
-                  <div className="flex items-center justify-between">
-                    <span className="font-extrabold text-xs text-slate-900">{r.type}</span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${r.status === 'Approved' ? 'bg-[#e7f6ee] text-[#166534]' : 'bg-[#fdeedc] text-[#8a4816]'}`}>
-                      {r.status}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 mt-1 truncate">{r.subject}</p>
-                </div>
-              ))}
-            </div>
+            <h4 className="text-base sm:text-lg font-black text-[#03045e] tracking-tight">
+              Benefits of Proactive Backlog Management
+            </h4>
+            <p className="text-xs text-slate-500">
+              How regular tracking safeguards your academic progression, degree timeline, and campus placement eligibility.
+            </p>
           </div>
 
           <button
-            onClick={openApplyModal}
-            className="w-full mt-4 py-2.5 bg-[#13141b] text-white rounded-2xl font-bold text-xs hover:bg-slate-800 transition cursor-pointer"
+            onClick={() => onNavigate('Backlog Tracking')}
+            className="text-xs font-bold text-[#0077b6] hover:underline cursor-pointer shrink-0"
           >
-            + Request Teacher Meet
+            Go to Backlog Tracker &rarr;
           </button>
         </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+          <div className="p-4 rounded-2xl bg-[#f4f9fd] border border-[#caf0f8] space-y-1.5">
+            <span className="w-8 h-8 rounded-xl bg-[#caf0f8] text-[#0077b6] flex items-center justify-center font-black text-sm mb-2">1</span>
+            <strong className="text-[#03045e] block font-bold">Year-Back Prevention</strong>
+            <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
+              Ensure you do not exceed the university maximum credit backlog threshold, preventing mandatory year-repeat lockouts.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-[#f4f9fd] border border-[#caf0f8] space-y-1.5">
+            <span className="w-8 h-8 rounded-xl bg-[#caf0f8] text-[#0077b6] flex items-center justify-center font-black text-sm mb-2">2</span>
+            <strong className="text-[#03045e] block font-bold">Expedited Remedial Approval</strong>
+            <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
+              Meeting your teacher and logging progress allows instant endorsement of your repeat exam hall ticket without paperwork delay.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-[#f4f9fd] border border-[#caf0f8] space-y-1.5">
+            <span className="w-8 h-8 rounded-xl bg-[#caf0f8] text-[#0077b6] flex items-center justify-center font-black text-sm mb-2">3</span>
+            <strong className="text-[#03045e] block font-bold">Placement Eligibility Shield</strong>
+            <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
+              Tier-1 campus recruiters require zero active backlogs. Clearing papers in odd/even cycles preserves your interview eligibility.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-[#f4f9fd] border border-[#caf0f8] space-y-1.5">
+            <span className="w-8 h-8 rounded-xl bg-[#caf0f8] text-[#0077b6] flex items-center justify-center font-black text-sm mb-2">4</span>
+            <strong className="text-[#03045e] block font-bold">Verified Clearance Transcripts</strong>
+            <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
+              Instantly generate digitally signed official clearance certificates recognized by the university examination cell and NAAC.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Section: Future Aspects & Upcoming Modules Roadmap */}
+      <div className="bg-gradient-to-br from-[#03045e] via-[#0077b6] to-[#03045e] text-white rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden space-y-6">
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-[#90e0ef] border border-white/20 text-[10px] font-black uppercase tracking-wide mb-2">
+              <Rocket size={13} className="text-[#00b4d8]" />
+              <span>Technology Roadmap 2026</span>
+            </div>
+            <h4 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+              Future Aspects & Upcoming Modules
+            </h4>
+            <p className="text-xs text-[#caf0f8] max-w-xl mt-1 leading-relaxed">
+              We are actively expanding BackTrack with automated backend services and AI academic intelligence. Here is what is arriving in the next few months:
+            </p>
+          </div>
+
+          <span className="text-xs font-mono font-bold px-3 py-1.5 rounded-xl bg-white/10 text-[#90e0ef] border border-white/20 shrink-0 self-start sm:self-auto">
+            Version 2.4 Preview
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 relative z-10 text-xs">
+          
+          {/* Feature 1: Automated Attendance Integration (Arriving Next Few Months) */}
+          <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 space-y-2 hover:bg-white/15 transition">
+            <div className="flex items-center justify-between">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-400 text-[#03045e]">
+                Arriving in Next Few Months
+              </span>
+            </div>
+            <h5 className="font-extrabold text-sm text-white pt-1">
+              Automated Attendance Tracking Backend
+            </h5>
+            <p className="text-[11px] text-[#caf0f8] leading-relaxed">
+              Seamless connection to campus RFID/biometric servers. Will automatically compute your percentage across subjects, issue condonation alerts below 75%, and auto-flag attendance backlog criteria.
+            </p>
+          </div>
+
+          {/* Feature 2: WhatsApp & SMS Cabin Alerts */}
+          <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 space-y-2 hover:bg-white/15 transition">
+            <div className="flex items-center justify-between">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#90e0ef] text-[#03045e]">
+                In Development
+              </span>
+            </div>
+            <h5 className="font-extrabold text-sm text-white pt-1">
+              SMS & WhatsApp Cabin Dispatch
+            </h5>
+            <p className="text-[11px] text-[#caf0f8] leading-relaxed">
+              Real-time push notifications delivered directly to student smartphones when a faculty advisor schedules a cabin visit or approves clearance.
+            </p>
+          </div>
+
+          {/* Feature 3: AI Predictive CGPA Engine */}
+          <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 space-y-2 hover:bg-white/15 transition">
+            <div className="flex items-center justify-between">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#90e0ef] text-[#03045e]">
+                Planned Beta
+              </span>
+            </div>
+            <h5 className="font-extrabold text-sm text-white pt-1">
+              AI SGPA & Repeat Marks Forecaster
+            </h5>
+            <p className="text-[11px] text-[#caf0f8] leading-relaxed">
+              Machine learning model that projects required repeat examination marks and recommends target study units to achieve distinction benchmarks.
+            </p>
+          </div>
+
+          {/* Feature 4: National Academic Depository (NAD) & DigiLocker Sync */}
+          <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 space-y-2 hover:bg-white/15 transition">
+            <div className="flex items-center justify-between">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#90e0ef] text-[#03045e]">
+                Institutional Sync
+              </span>
+            </div>
+            <h5 className="font-extrabold text-sm text-white pt-1">
+              DigiLocker & NAD Credential Lockers
+            </h5>
+            <p className="text-[11px] text-[#caf0f8] leading-relaxed">
+              Official API integration to push verified digital backlog certificates directly into students’ government DigiLocker accounts.
+            </p>
+          </div>
+        </div>
+
+        <div className="absolute right-[-60px] bottom-[-60px] w-96 h-96 rounded-full bg-[#00b4d8]/20 blur-3xl pointer-events-none" />
       </div>
     </div>
   );
