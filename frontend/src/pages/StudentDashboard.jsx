@@ -28,7 +28,8 @@ import {
   Send,
   Filter,
   Award,
-  Trash2
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 import {
   getBacklogRecords,
@@ -2018,7 +2019,12 @@ function StudentBacklogsTab({
                       Reason: {item.backlogReason}
                     </span>
 
-                    {!item.metTeacher ? (
+                    {item.meetingRequired && !item.metTeacher ? (
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1 animate-pulse">
+                        <AlertTriangle size={11} className="text-rose-600" />
+                        Meeting Required by {item.meetingDeadline} {item.meetingDeadlineTime ? `(${item.meetingDeadlineTime})` : ''}
+                      </span>
+                    ) : !item.metTeacher ? (
                       <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#fef3c7] text-[#b45309] border border-[#fde68a]">
                         Teacher meeting pending
                       </span>
@@ -2099,6 +2105,31 @@ function StudentBacklogsTab({
                     </strong>
                   </div>
                 </div>
+
+                {/* Mandatory Faculty Meeting Alert Notice */}
+                {item.meetingRequired && !item.metTeacher && (
+                  <div className="p-3.5 bg-gradient-to-r from-rose-50 via-amber-50 to-rose-50 rounded-2xl border border-rose-200 text-xs shadow-xs space-y-1.5">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2 font-extrabold text-rose-900">
+                        <AlertTriangle size={15} className="text-rose-600 shrink-0 animate-bounce" />
+                        <span>MANDATORY FACULTY CONSULTATION NOTICE</span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-200 text-rose-900">
+                          Deadline: {item.meetingDeadline} {item.meetingDeadlineTime || ''}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-mono font-bold text-rose-800 bg-white/80 px-2 py-0.5 rounded-lg border border-rose-200">
+                        Venue: {item.meetingCabinLocation || 'Faculty Cabin'}
+                      </span>
+                    </div>
+                    <p className="text-rose-950 font-medium italic text-[11px] leading-relaxed">
+                      &quot;{item.meetingWarningMessage}&quot;
+                    </p>
+                    <div className="text-[10px] text-rose-800 font-semibold flex items-center justify-between flex-wrap gap-1 pt-0.5">
+                      <span>Issued by: {item.meetingRequestedBy || 'Faculty Advisor'}</span>
+                      <span className="text-rose-700 font-bold">Please report to cabin in-person before deadline date</span>
+                    </div>
+                  </div>
+                )}
 
                 {/* Latest Remarks Quote */}
                 <div className="p-3.5 bg-slate-50/80 rounded-2xl border border-slate-100">

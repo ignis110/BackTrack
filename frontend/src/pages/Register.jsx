@@ -12,13 +12,24 @@ import {
   Mail,
   Lock
 } from 'lucide-react';
-import { addUser, addStudent, addTeacher, isStudentIdentifier, isFacultyIdentifier, getCurriculumSubjectsForYearAndSem } from '../utils/backlogStore';
+import {
+  addUser,
+  addStudent,
+  addTeacher,
+  isStudentIdentifier,
+  isFacultyIdentifier,
+  getCurriculumSubjectsForYearAndSem,
+  UNIVERSITY_DEPARTMENTS,
+  ADMIN_DIVISIONS
+} from '../utils/backlogStore';
 
 export default function Register() {
   const navigate = useNavigate();
   const location = useLocation();
 
   const [role, setRole] = useState('student');
+  const [isCustomDept, setIsCustomDept] = useState(false);
+  const [customDeptValue, setCustomDeptValue] = useState('');
 
   // Form states
   const [formData, setFormData] = useState({
@@ -42,6 +53,7 @@ export default function Register() {
       setRole(roleParam);
       // Set sensible defaults for each role
       if (roleParam === 'student') {
+        setIsCustomDept(false);
         setFormData((prev) => ({
           ...prev,
           departmentCourse: 'Bachelor of Computer Applications (BCA)',
@@ -49,12 +61,14 @@ export default function Register() {
           levelDesignation: 'Semester 1'
         }));
       } else if (roleParam === 'faculty') {
+        setIsCustomDept(false);
         setFormData((prev) => ({
           ...prev,
-          departmentCourse: 'Computer Applications',
+          departmentCourse: 'School of Sciences',
           levelDesignation: 'Assistant Professor'
         }));
       } else if (roleParam === 'admin') {
+        setIsCustomDept(false);
         setFormData((prev) => ({
           ...prev,
           departmentCourse: 'Examinations & Evaluation Branch',
@@ -66,6 +80,7 @@ export default function Register() {
 
   const handleRoleChange = (newRole) => {
     setRole(newRole);
+    setIsCustomDept(false);
     if (newRole === 'student') {
       setFormData((prev) => ({
         ...prev,
@@ -76,7 +91,7 @@ export default function Register() {
     } else if (newRole === 'faculty') {
       setFormData((prev) => ({
         ...prev,
-        departmentCourse: 'Computer Applications',
+        departmentCourse: 'School of Sciences',
         levelDesignation: 'Assistant Professor'
       }));
     } else if (newRole === 'admin') {
@@ -414,20 +429,74 @@ export default function Register() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700">Department / Branch</label>
+                  <label className="block text-sm font-medium text-slate-700">
+                    {role === 'faculty' ? 'Academic Department / School' : 'Administrative Department / Division'} *
+                  </label>
                   <div className="mt-1 relative rounded-md shadow-sm">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <Building className="h-5 w-5 text-slate-400" />
                     </div>
-                    <input
-                      type="text"
-                      required
-                      value={formData.departmentCourse}
-                      onChange={(e) => setFormData({ ...formData, departmentCourse: e.target.value })}
-                      className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50"
-                      placeholder="Computer Applications"
-                    />
+                    {role === 'faculty' ? (
+                      <select
+                        value={isCustomDept ? 'OTHER_CUSTOM' : formData.departmentCourse}
+                        onChange={(e) => {
+                          if (e.target.value === 'OTHER_CUSTOM') {
+                            setIsCustomDept(true);
+                            setFormData({ ...formData, departmentCourse: customDeptValue || '' });
+                          } else {
+                            setIsCustomDept(false);
+                            setFormData({ ...formData, departmentCourse: e.target.value });
+                          }
+                        }}
+                        className="block w-full pl-10 pr-10 py-3 border border-slate-200 rounded-xl focus:ring-[#0077b6] focus:border-[#0077b6] bg-slate-50 text-xs sm:text-sm font-semibold text-slate-800 cursor-pointer"
+                      >
+                        {UNIVERSITY_DEPARTMENTS.map((dept) => (
+                          <option key={dept} value={dept}>
+                            {dept}
+                          </option>
+                        ))}
+                        <option value="OTHER_CUSTOM">+ Other / Custom Department...</option>
+                      </select>
+                    ) : (
+                      <select
+                        value={isCustomDept ? 'OTHER_CUSTOM' : formData.departmentCourse}
+                        onChange={(e) => {
+                          if (e.target.value === 'OTHER_CUSTOM') {
+                            setIsCustomDept(true);
+                            setFormData({ ...formData, departmentCourse: customDeptValue || '' });
+                          } else {
+                            setIsCustomDept(false);
+                            setFormData({ ...formData, departmentCourse: e.target.value });
+                          }
+                        }}
+                        className="block w-full pl-10 pr-10 py-3 border border-slate-200 rounded-xl focus:ring-[#0077b6] focus:border-[#0077b6] bg-slate-50 text-xs sm:text-sm font-semibold text-slate-800 cursor-pointer"
+                      >
+                        {ADMIN_DIVISIONS.map((div) => (
+                          <option key={div} value={div}>
+                            {div}
+                          </option>
+                        ))}
+                        <option value="OTHER_CUSTOM">+ Other / Custom Division...</option>
+                      </select>
+                    )}
                   </div>
+
+                  {/* Conditional input when Other / Custom is selected */}
+                  {isCustomDept && (
+                    <div className="mt-2.5 animate-in fade-in slide-in-from-top-1">
+                      <input
+                        type="text"
+                        required
+                        placeholder={role === 'faculty' ? 'Type custom department name (e.g. Psychology, Linguistics)...' : 'Type custom administrative division...'}
+                        value={customDeptValue}
+                        onChange={(e) => {
+                          setCustomDeptValue(e.target.value);
+                          setFormData({ ...formData, departmentCourse: e.target.value });
+                        }}
+                        className="block w-full px-3.5 py-2.5 border border-[#0077b6]/50 rounded-xl focus:ring-[#0077b6] focus:border-[#0077b6] bg-white text-xs font-semibold text-slate-900 shadow-xs"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -436,7 +505,7 @@ export default function Register() {
                     <select
                       value={formData.levelDesignation}
                       onChange={(e) => setFormData({ ...formData, levelDesignation: e.target.value })}
-                      className="mt-1 block w-full pl-3 pr-10 py-3 border border-slate-200 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50"
+                      className="mt-1 block w-full pl-3 pr-10 py-3 border border-slate-200 rounded-xl focus:ring-[#0077b6] focus:border-[#0077b6] bg-slate-50 text-xs sm:text-sm font-semibold text-slate-800 cursor-pointer"
                     >
                       <option value="Professor & HOD">Professor & HOD</option>
                       <option value="Associate Professor">Associate Professor</option>
@@ -448,7 +517,7 @@ export default function Register() {
                     <select
                       value={formData.levelDesignation}
                       onChange={(e) => setFormData({ ...formData, levelDesignation: e.target.value })}
-                      className="mt-1 block w-full pl-3 pr-10 py-3 border border-slate-200 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50"
+                      className="mt-1 block w-full pl-3 pr-10 py-3 border border-slate-200 rounded-xl focus:ring-[#0077b6] focus:border-[#0077b6] bg-slate-50 text-xs sm:text-sm font-semibold text-slate-800 cursor-pointer"
                     >
                       <option value="Controller of Examinations">Controller of Examinations</option>
                       <option value="Dean of Academic Affairs">Dean of Academic Affairs</option>

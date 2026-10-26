@@ -31,7 +31,8 @@ import {
   Clock,
   CheckCheck,
   Award,
-  MessageSquare
+  MessageSquare,
+  AlertTriangle
 } from 'lucide-react';
 import {
   getBacklogRecords,
@@ -44,10 +45,12 @@ import {
   saveRequests,
   getNotifications,
   saveNotifications,
-  addNotification
+  addNotification,
+  UNIVERSITY_DEPARTMENTS
 } from '../utils/backlogStore';
 import ClearanceCertificateModal from '../components/ClearanceCertificateModal';
 import FacultyAdviceModal from '../components/FacultyAdviceModal';
+import MeetingDeadlineModal from '../components/MeetingDeadlineModal';
 import { RecordFunnelStepper, ResolutionFunnelSummary } from '../components/ResolutionFunnel';
 
 // Clean Default Faculty Profile when no session is loaded
@@ -211,6 +214,7 @@ export default function FacultyDashboard() {
   const [backlogRecords, setBacklogRecords] = useState(() => getBacklogRecords());
   const [selectedCertRecord, setSelectedCertRecord] = useState(null);
   const [selectedAdviceRecord, setSelectedAdviceRecord] = useState(null);
+  const [selectedMeetingReqRecord, setSelectedMeetingReqRecord] = useState(null);
 
   // Real-time synchronization for student updates, clearance, meetings & notifications across windows/tabs
   useEffect(() => {
@@ -510,6 +514,7 @@ export default function FacultyDashboard() {
               triggerToast={triggerToast}
               onOpenCertificate={(r) => setSelectedCertRecord(r)}
               onOpenAdvice={(r) => setSelectedAdviceRecord(r)}
+              onOpenMeetingRequirement={(r) => setSelectedMeetingReqRecord(r)}
             />
           )}
 
@@ -522,6 +527,7 @@ export default function FacultyDashboard() {
               triggerToast={triggerToast}
               onOpenCertificate={(r) => setSelectedCertRecord(r)}
               onOpenAdvice={(r) => setSelectedAdviceRecord(r)}
+              onOpenMeetingRequirement={(r) => setSelectedMeetingReqRecord(r)}
             />
           )}
 
@@ -581,6 +587,23 @@ export default function FacultyDashboard() {
           onAdviceSent={(id, text) => {
             setBacklogRecords(getBacklogRecords());
             triggerToast('Guidance note dispatched to student successfully!');
+          }}
+        />
+      )}
+
+      {/* Faculty Mandatory Meeting Requirement & Deadline Modal */}
+      {selectedMeetingReqRecord && (
+        <MeetingDeadlineModal
+          record={selectedMeetingReqRecord}
+          facultyName={facultyProfile.name}
+          onClose={() => setSelectedMeetingReqRecord(null)}
+          onSave={(updatedRecord) => {
+            setBacklogRecords(getBacklogRecords());
+            triggerToast(`Mandatory meeting deadline issued to ${updatedRecord.studentName}!`);
+          }}
+          onClear={(recordId) => {
+            setBacklogRecords(getBacklogRecords());
+            triggerToast('Meeting requirement removed from student record.', 'info');
           }}
         />
       )}
@@ -1717,7 +1740,8 @@ function FacultySettingsTab({ faculty, setFaculty, triggerToast }) {
         JSON.stringify({
           ...u,
           name: profileForm.name,
-          email: cleanMail
+          email: cleanMail,
+          department: profileForm.department
         })
       );
     } catch {}
@@ -1739,13 +1763,13 @@ function FacultySettingsTab({ faculty, setFaculty, triggerToast }) {
       {/* Profile Card */}
       <div className="bg-white rounded-3xl p-7 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
         <div className="flex items-center gap-4 pb-6 border-b border-slate-100">
-          <div className="w-16 h-16 rounded-3xl bg-[#f4e8fd] text-[#6b21a8] flex items-center justify-center font-black text-2xl shadow-inner">
+          <div className="w-16 h-16 rounded-3xl bg-[#caf0f8] text-[#03045e] flex items-center justify-center font-black text-2xl shadow-inner">
             {faculty.name.split(' ').map((n) => n[0]).join('')}
           </div>
           <div>
             <h3 className="font-extrabold text-lg text-slate-900">{faculty.name}</h3>
             <p className="text-xs text-slate-500">{faculty.designation} • Employee ID: <strong>{faculty.empId}</strong></p>
-            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#fdeedc] text-[#8a4816] inline-block mt-1">
+            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#caf0f8] text-[#0077b6] inline-block mt-1">
               Department of {faculty.department}
             </span>
           </div>
@@ -1760,7 +1784,7 @@ function FacultySettingsTab({ faculty, setFaculty, triggerToast }) {
                 required
                 value={profileForm.name}
                 onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:bg-white"
+                className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:bg-white focus:border-[#0077b6] focus:ring-2 focus:ring-[#0077b6]/20 transition"
               />
             </div>
 
@@ -1774,12 +1798,30 @@ function FacultySettingsTab({ faculty, setFaculty, triggerToast }) {
                 placeholder="faculty@univ.edu"
                 pattern="^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$"
                 title="Please enter a valid email address (e.g. name@domain.com)"
-                className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:bg-white"
+                className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:bg-white focus:border-[#0077b6] focus:ring-2 focus:ring-[#0077b6]/20 transition"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="font-bold text-slate-700 block mb-1">Academic Department</label>
+              <select
+                value={profileForm.department}
+                onChange={(e) => setProfileForm({ ...profileForm, department: e.target.value })}
+                className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:bg-white focus:border-[#0077b6] focus:ring-2 focus:ring-[#0077b6]/20 font-semibold text-slate-800 transition"
+              >
+                {UNIVERSITY_DEPARTMENTS.map((dept) => (
+                  <option key={dept} value={dept}>
+                    {dept}
+                  </option>
+                ))}
+                {!UNIVERSITY_DEPARTMENTS.includes(profileForm.department) && profileForm.department && (
+                  <option value={profileForm.department}>{profileForm.department}</option>
+                )}
+              </select>
+            </div>
+
             <div>
               <label className="font-bold text-slate-700 block mb-1">Phone Number</label>
               <input
@@ -1787,7 +1829,7 @@ function FacultySettingsTab({ faculty, setFaculty, triggerToast }) {
                 required
                 value={profileForm.phone}
                 onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:bg-white"
+                className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:bg-white focus:border-[#0077b6] focus:ring-2 focus:ring-[#0077b6]/20 transition"
               />
             </div>
 
@@ -1798,7 +1840,7 @@ function FacultySettingsTab({ faculty, setFaculty, triggerToast }) {
                 required
                 value={profileForm.cabin}
                 onChange={(e) => setProfileForm({ ...profileForm, cabin: e.target.value })}
-                className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:bg-white"
+                className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:bg-white focus:border-[#0077b6] focus:ring-2 focus:ring-[#0077b6]/20 transition"
               />
             </div>
           </div>
@@ -1806,7 +1848,7 @@ function FacultySettingsTab({ faculty, setFaculty, triggerToast }) {
           <div className="pt-2 text-right">
             <button
               type="submit"
-              className="px-5 py-2.5 bg-[#13141b] text-white rounded-2xl font-bold hover:bg-slate-800 transition"
+              className="px-6 py-2.5 bg-[#0077b6] text-white rounded-2xl font-bold hover:bg-[#03045e] shadow-md shadow-[#0077b6]/20 transition active:scale-[0.98]"
             >
               Save Profile Changes
             </button>
@@ -1882,7 +1924,8 @@ function FacultyStudentUpdatesTab({
   onNavigate,
   triggerToast,
   onOpenCertificate,
-  onOpenAdvice
+  onOpenAdvice,
+  onOpenMeetingRequirement
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('All');
@@ -2078,7 +2121,12 @@ function FacultyStudentUpdatesTab({
 
                   {/* Status Pills Matching Design */}
                   <div className="flex items-center gap-2 flex-wrap">
-                    {!item.metTeacher ? (
+                    {item.meetingRequired && !item.metTeacher ? (
+                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1.5 shadow-xs">
+                        <AlertTriangle size={13} className="text-rose-600 animate-pulse" />
+                        Meeting Required by {item.meetingDeadline} {item.meetingDeadlineTime ? `(${item.meetingDeadlineTime})` : ''}
+                      </span>
+                    ) : !item.metTeacher ? (
                       <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#fef3c7] text-[#b45309] border border-[#fde68a]">
                         Teacher meeting pending
                       </span>
@@ -2165,6 +2213,39 @@ function FacultyStudentUpdatesTab({
                     </p>
                   </div>
 
+                  {/* Mandatory Meeting Warning Banner */}
+                  {item.meetingRequired && !item.metTeacher && (
+                    <div className="p-3.5 bg-gradient-to-r from-amber-50 via-rose-50/40 to-amber-50 rounded-2xl border border-amber-200 text-xs shadow-xs space-y-1">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-2 font-extrabold text-amber-900">
+                          <AlertTriangle size={15} className="text-amber-600 shrink-0" />
+                          <span>FACULTY MEETING DEADLINE & WARNING ISSUED</span>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-200/70 text-amber-900">
+                            Deadline: {item.meetingDeadline} {item.meetingDeadlineTime || ''}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-mono font-bold text-amber-800 bg-white/80 px-2 py-0.5 rounded-lg border border-amber-200/60">
+                            {item.meetingCabinLocation || 'Faculty Cabin'}
+                          </span>
+                          <button
+                            onClick={() => onOpenMeetingRequirement && onOpenMeetingRequirement(item)}
+                            className="text-[11px] font-bold text-amber-800 hover:text-amber-950 underline cursor-pointer"
+                          >
+                            Edit Warning
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-amber-950 font-medium leading-relaxed italic text-[11px]">
+                        &quot;{item.meetingWarningMessage}&quot;
+                      </p>
+                      <div className="text-[10px] text-amber-700 font-semibold flex items-center gap-1 pt-0.5">
+                        <Clock size={11} className="text-amber-500" />
+                        <span>Issued by {item.meetingRequestedBy || 'Faculty Member'} • Alert active on student portal</span>
+                      </div>
+                    </div>
+                  )}
+
                   {item.facultyNotes && (
                     <div className="p-3.5 bg-gradient-to-r from-[#fefbf6] to-[#fdeedc]/50 rounded-2xl border border-[#fcd7b5] text-xs space-y-1 shadow-xs">
                       <div className="flex items-center justify-between text-[11px]">
@@ -2190,6 +2271,23 @@ function FacultyStudentUpdatesTab({
                   className="px-4 py-2 bg-[#fdeedc] text-[#8a4816] hover:bg-[#fcd7b5] rounded-2xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap shadow-xs"
                 >
                   <MessageSquare size={14} /> Send Guidance Note
+                </button>
+
+                {/* Meeting Required / Deadline Warning Button */}
+                <button
+                  onClick={() => onOpenMeetingRequirement && onOpenMeetingRequirement(item)}
+                  className={`px-4 py-2 rounded-2xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap shadow-xs ${
+                    item.meetingRequired && !item.metTeacher
+                      ? 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
+                      : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200/80'
+                  }`}
+                  title="Warn student with a deadline date if they are missing meetings"
+                >
+                  <AlertTriangle
+                    size={14}
+                    className={item.meetingRequired && !item.metTeacher ? 'text-rose-600 animate-pulse' : 'text-amber-600'}
+                  />
+                  {item.meetingRequired && !item.metTeacher ? 'Meeting Deadline Active' : 'Meeting Required'}
                 </button>
 
                 {!item.metTeacher ? (
@@ -2235,7 +2333,8 @@ function FacultyBacklogManagementTab({
   onNavigate,
   triggerToast,
   onOpenCertificate,
-  onOpenAdvice
+  onOpenAdvice,
+  onOpenMeetingRequirement
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('All');
@@ -2496,6 +2595,18 @@ function FacultyBacklogManagementTab({
                               <Award size={13} /> Certificate
                             </button>
                           )}
+
+                          <button
+                            onClick={() => onOpenMeetingRequirement && onOpenMeetingRequirement(item)}
+                            title="Require Meeting & Set Deadline Warning"
+                            className={`p-1.5 rounded-xl transition cursor-pointer ${
+                              item.meetingRequired && !item.metTeacher
+                                ? 'bg-rose-100 text-rose-700'
+                                : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                            }`}
+                          >
+                            <AlertTriangle size={14} className={item.meetingRequired && !item.metTeacher ? 'text-rose-600 animate-pulse' : 'text-amber-700'} />
+                          </button>
 
                           <button
                             onClick={() => onOpenAdvice && onOpenAdvice(item)}

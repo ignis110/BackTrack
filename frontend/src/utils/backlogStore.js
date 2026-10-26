@@ -287,6 +287,7 @@ export function toggleTeacherMeetingStatus(recordId, newMetStatus) {
       return {
         ...item,
         metTeacher: newMetStatus,
+        meetingRequired: newMetStatus ? false : item.meetingRequired,
         teacherConsultation: newMetStatus ? 'Completed' : 'Pending Guidance',
         lastUpdated: timeString
       };
@@ -294,6 +295,69 @@ export function toggleTeacherMeetingStatus(recordId, newMetStatus) {
     return item;
   });
 
+  saveBacklogRecords(updated);
+  return updated;
+}
+
+export function setMeetingDeadlineRequirement(recordId, deadlineData, facultyName = 'Faculty Advisor') {
+  const current = getBacklogRecords();
+  const now = new Date();
+  const timeString = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' ' +
+    now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+  let targetRecord = null;
+
+  const updated = current.map((item) => {
+    if (item.id === recordId) {
+      targetRecord = {
+        ...item,
+        meetingRequired: true,
+        meetingDeadline: deadlineData.deadlineDate,
+        meetingDeadlineTime: deadlineData.deadlineTime || '11:00 AM - 01:00 PM',
+        meetingCabinLocation: deadlineData.cabinLocation || 'Faculty Cabin',
+        meetingUrgency: deadlineData.urgency || 'Urgent Warning',
+        meetingWarningMessage: deadlineData.warningMessage || 'Mandatory cabin consultation required regarding your backlog status.',
+        meetingRequestedBy: facultyName,
+        meetingRequestedAt: timeString,
+        lastUpdated: timeString
+      };
+      return targetRecord;
+    }
+    return item;
+  });
+
+  saveBacklogRecords(updated);
+
+  // Dispatch student notification so it appears immediately on Student Portal
+  if (targetRecord) {
+    addNotification({
+      title: '🚨 Mandatory Meeting Required by Faculty',
+      category: 'Action Required',
+      body: `${facultyName} has issued a mandatory meeting deadline for ${targetRecord.subjectCode} (${targetRecord.subjectName}). You must report before ${deadlineData.deadlineDate} (${deadlineData.deadlineTime || 'during cabin hours'}) at ${deadlineData.cabinLocation || 'Faculty Cabin'}. Notice: "${deadlineData.warningMessage || 'Please report for urgent academic review.'}"`,
+      targetRole: 'student',
+      targetUsn: targetRecord.usn,
+      studentName: targetRecord.studentName,
+      requestId: targetRecord.id
+    });
+  }
+
+  return updated;
+}
+
+export function clearMeetingDeadlineRequirement(recordId) {
+  const current = getBacklogRecords();
+  const updated = current.map((item) => {
+    if (item.id === recordId) {
+      return {
+        ...item,
+        meetingRequired: false,
+        meetingDeadline: null,
+        meetingDeadlineTime: null,
+        meetingWarningMessage: null
+      };
+    }
+    return item;
+  });
   saveBacklogRecords(updated);
   return updated;
 }
@@ -788,10 +852,87 @@ export function deleteCourse(id) {
 export function getUsers() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_USERS);
+    let users = [];
     if (raw !== null) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed)) users = parsed;
     }
+
+    let hasChanges = false;
+
+    // Automatically sync all faculty / teachers so they are included in Users Management
+    const teachers = getTeachers();
+    teachers.forEach((t) => {
+      const existing = users.find(
+        (u) =>
+          u.id === t.empId ||
+          u.id === t.id ||
+          u.email === t.email ||
+          (u.name === t.name && u.role === 'Teacher')
+      );
+      if (!existing) {
+        users.push({
+          id: t.empId || t.id,
+          name: t.name,
+          email: t.email || `${t.username || 'faculty'}@univ.edu`,
+          username: t.username || t.empId,
+          role: 'Teacher',
+          department: t.department || 'Computer Applications',
+          status: 'Active',
+          lastLogin: 'Active Today'
+        });
+        hasChanges = true;
+      } else if (existing.role !== 'Teacher') {
+        existing.role = 'Teacher';
+        hasChanges = true;
+      }
+    });
+
+    // Automatically sync all registered students so they are included in Users Management
+    const students = getStudents();
+    students.forEach((s) => {
+      const existing = users.find(
+        (u) =>
+          u.id === s.usn ||
+          u.id === s.id ||
+          u.email === s.email ||
+          (u.name === s.name && u.role === 'Student')
+      );
+      if (!existing) {
+        users.push({
+          id: s.usn || s.id,
+          name: s.name,
+          email: s.email || `${s.usn || 'student'}@univ.edu`,
+          username: s.username || s.usn,
+          role: 'Student',
+          department: s.course || 'Computer Applications',
+          status: s.status || 'Active',
+          lastLogin: 'Recent'
+        });
+        hasChanges = true;
+      }
+    });
+
+    // Ensure Admin account is present
+    const hasAdmin = users.some((u) => u.role === 'Admin');
+    if (!hasAdmin) {
+      users.unshift({
+        id: 'ADM-001',
+        name: 'Exam Controller',
+        email: 'admin@univ.edu',
+        username: 'admin',
+        role: 'Admin',
+        department: 'Academic Affairs & Examination Cell',
+        status: 'Active',
+        lastLogin: 'Now'
+      });
+      hasChanges = true;
+    }
+
+    if (hasChanges) {
+      localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
+    }
+    return users;
   } catch (e) {
     console.warn('Error reading users', e);
   }
@@ -975,6 +1116,27 @@ export function addNotification(notif) {
   saveNotifications(updated);
   return updated;
 }
+
+// ==========================================
+// UNIVERSITY DEPARTMENTS & SCHOOLS
+// ==========================================
+export const UNIVERSITY_DEPARTMENTS = [
+  'School of Sciences',
+  'Social Sciences',
+  'Management',
+  'Commerce',
+  'English',
+  'Psychology',
+  'Computer Applications',
+  'Engineering & Technology'
+];
+
+export const ADMIN_DIVISIONS = [
+  'Examinations & Evaluation Branch',
+  'Office of Academic Affairs & Examination Cell',
+  'Office of the Registrar',
+  'Student Welfare & Academic Records'
+];
 
 // ==========================================
 // OFFICIAL BCA CURRICULUM (SEMESTERS 1 TO 6)
